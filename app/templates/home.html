@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7 text-center py-5">
+    <h1 class="fw-bold">Where is my parcel?</h1>
+    <p class="lead text-secondary">Track any RapidExpress parcel with its tracking number. No login needed.</p>
+    <form class="d-flex gap-2 justify-content-center mt-4" method="get" action="{{ url_for('parcels.track') }}">
+      <input class="form-control form-control-lg" name="tracking_no" placeholder="e.g. RX-7KQ2M9XAP4" maxlength="20" required>
+      <button class="btn btn-dark btn-lg">Track</button>
+    </form>
+    <p class="mt-5">Seller, rider or admin? <a href="{{ url_for('auth.login') }}">Log in</a> ·
+      New seller? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
+  </div>
+</div>
+{% endblock %}

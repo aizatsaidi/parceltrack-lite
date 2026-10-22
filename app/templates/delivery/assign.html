@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Assign parcels{% endblock %}
+{% block content %}
+<h2 class="h4 mb-3">Parcel summary</h2>
+<div class="row g-3 mb-4">
+  {% for status, n in counts.items() %}
+    <div class="col">
+      <div class="card text-center h-100">
+        <div class="card-body">
+          <div class="display-6 fw-bold">{{ n }}</div>
+          <div class="small text-secondary">{{ status }}</div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<h2 class="h4 mb-3">Assign parcels to riders</h2>
+<div class="card">
+  <table class="table mb-0 align-middle">
+    <thead><tr><th>Tracking no.</th><th>Recipient</th><th>Weight</th><th>Registered</th><th style="width:40%">Assign to</th></tr></thead>
+    <tbody>
+    {% for p in parcels %}
+      <tr>
+        <td class="font-monospace">{{ p.tracking_no }}</td>
+        <td>{{ p.recipient_name }}</td>
+        <td>{{ '%.2f'|format(p.weight_kg) }} kg</td>
+        <td class="small">{{ p.created_at|myt('%d %b %H:%M') }}</td>
+        <td>
+          <form method="post" class="d-flex gap-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="parcel_id" value="{{ p.id }}">
+            <select name="rider_id" class="form-select form-select-sm" required>
+              <option value="">Choose rider…</option>
+              {% for r in riders %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
+            </select>
+            <button class="btn btn-sm btn-dark">Assign</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="text-center text-secondary py-4">No parcels waiting to be assigned.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

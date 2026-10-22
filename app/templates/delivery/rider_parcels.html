@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}My deliveries{% endblock %}
+{% block content %}
+<h2 class="h4 mb-3">My deliveries</h2>
+<div class="list-group">
+  {% for p in parcels %}
+    <a class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+       href="{{ url_for('delivery.rider_parcel_detail', parcel_id=p.id) }}">
+      <div>
+        <div class="font-monospace">{{ p.tracking_no }}</div>
+        <div class="small text-secondary">{{ p.recipient_name }}</div>
+      </div>
+      <span class="badge text-bg-secondary status-pill">{{ p.status }}</span>
+    </a>
+  {% else %}
+    <div class="list-group-item text-center text-secondary py-4">No parcels assigned to you yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}

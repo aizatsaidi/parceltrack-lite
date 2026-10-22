@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Track parcel{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <h2 class="h4 mb-3">Track a parcel</h2>
+    <form class="d-flex gap-2 mb-4" method="get">
+      <input class="form-control" name="tracking_no" value="{{ tracking_no }}" maxlength="20" placeholder="e.g. RX-7KQ2M9XAP4" required>
+      <button class="btn btn-dark">Track</button>
+    </form>
+
+    {% if not_found %}
+      <div class="alert alert-warning">No parcel found with that tracking number.</div>
+    {% elif history %}
+      <div class="card">
+        <div class="card-body">
+          <p class="mb-1 text-secondary small">Tracking number</p>
+          <p class="font-monospace fs-5">{{ tracking_no }}</p>
+          <ul class="list-group list-group-flush">
+            {% for h in history|reverse %}
+              <li class="list-group-item d-flex justify-content-between">
+                <strong>{{ h.status }}</strong>
+                <span class="text-secondary">{{ h.when|myt('%d %b %Y, %H:%M') }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <p class="small text-secondary mt-2">For privacy, recipient details are never shown on this page.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

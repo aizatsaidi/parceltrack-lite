@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ parcel.tracking_no }}{% endblock %}
+{% block content %}
+<a href="{{ url_for('delivery.rider_parcels') }}" class="small">&larr; My deliveries</a>
+<div class="card mt-2">
+  <div class="card-body">
+    <p class="font-monospace fs-5 mb-1">{{ parcel.tracking_no }}</p>
+    <span class="badge text-bg-secondary status-pill">{{ parcel.status }}</span>
+    <dl class="row mt-3 mb-0">
+      <dt class="col-sm-3">Recipient</dt><dd class="col-sm-9">{{ parcel.recipient_name }}</dd>
+      <dt class="col-sm-3">Phone</dt><dd class="col-sm-9">{{ parcel.recipient_phone }}</dd>
+      <dt class="col-sm-3">Address</dt><dd class="col-sm-9">{{ parcel.recipient_address }}</dd>
+      <dt class="col-sm-3">Weight</dt><dd class="col-sm-9">{{ '%.2f'|format(parcel.weight_kg) }} kg</dd>
+    </dl>
+  </div>
+</div>
+<div class="alert alert-light border mt-3 small mb-0">
+  Coming next: update status (Out for Delivery, Delivered, Failed) and upload proof-of-delivery photo.
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+# Secrets and local data never go to GitHub (policy P4)
+.env
+*.db
+*.log
+uploads/*
+!uploads/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/

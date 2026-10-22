@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ParcelTrack Lite{% endblock %} · RapidExpress</title>
+  <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+  <style>
+    body { background: #f6f4ef; }
+    .navbar { background: #14213d; }
+    .brand-accent { color: #f08a4b; }
+    .card { border-color: #ddd6c8; }
+    .status-pill { font-size: .85rem; }
+  </style>
+</head>
+<body>
+<nav class="navbar navbar-expand navbar-dark mb-4">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="{{ url_for('home') }}">Parcel<span class="brand-accent">Track</span> Lite</a>
+    <div class="navbar-nav ms-auto align-items-center">
+      <a class="nav-link" href="{{ url_for('parcels.track') }}">Track parcel</a>
+      {% if current_user.is_authenticated %}
+        {% if current_user.role == 'seller' %}
+          <a class="nav-link" href="{{ url_for('parcels.my_parcels') }}">My parcels</a>
+        {% elif current_user.role == 'rider' %}
+          <a class="nav-link" href="{{ url_for('delivery.rider_parcels') }}">My deliveries</a>
+        {% elif current_user.role == 'admin' %}
+          <a class="nav-link" href="{{ url_for('delivery.assign') }}">Assign parcels</a>
+        {% endif %}
+        <span class="navbar-text text-light mx-2 small">{{ current_user.name }} ({{ current_user.role }})</span>
+        <form method="post" action="{{ url_for('auth.logout') }}" class="d-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-outline-light">Log out</button>
+        </form>
+      {% else %}
+        <a class="nav-link" href="{{ url_for('auth.login') }}">Log in</a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+<main class="container mb-5">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>
