@@ -1,5 +1,5 @@
 """
-MODULE 1 - Login and User Management  (owner: Member 1)
+MODULE 1 - Login and User Management  (owner: Aqil)
 
 Working now (for the progress demo):
   - Login and logout for Seller, Rider and Admin

@@ -1,5 +1,5 @@
 """
-MODULE 2 - Parcel Registration and Public Tracking  (owner: Member 2)
+MODULE 2 - Parcel Registration and Public Tracking  (owner: Syabil)
 
 Working now (for the progress demo):
   - Seller registers a parcel and gets a tracking number
