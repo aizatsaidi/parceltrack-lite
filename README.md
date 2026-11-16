@@ -73,9 +73,48 @@ python -m pytest tests -v
 ```
 Each test checks one security requirement from the slides (SR1.x, SR2.x, SR3.x).
 
-## Not finished yet (next steps)
+## Checklist to Week 14 (matches the lecturer's rubric)
 
-- Module 1: Admin creates and disables Rider accounts; change password page
-- Module 2: Rate limit on the tracking page
-- Module 3: Rider status update in the correct order; secure proof-of-delivery photo upload
-- Group: Move to MySQL and deploy on a cloud server with HTTPS
+Tick items off as they are done. Each member writes the code for their own module (rubric rule 5).
+Rubric marks per member: 1a functions (5), 1b deployment and integration (10), 2a security controls (6),
+2b policies and error handling (4), 3 security testing (10), 4 live demo and Q&A (5) = 40 raw marks → 30%.
+
+### Module 1: Login and User Management (Aqil) · policies P1, P2, P5
+
+- [x] Login and logout for Seller, Rider and Admin
+- [x] Seller self-registration (password at least 10 characters)
+- [x] Lockout after 5 failed logins; generic "Invalid email or password"; logins logged without passwords
+- [ ] **Switch password hashing to bcrypt or Argon2** (rubric names these two; current code uses Werkzeug scrypt)
+- [ ] Admin creates Rider accounts
+- [ ] Admin disables Rider accounts (P1: disabled the day a rider leaves)
+- [ ] Change password page
+- [ ] Tests from the rubric: SQL injection in username, weak or short password, repeated wrong passwords, script in name field, opening an admin page as Seller
+
+### Module 2: Parcel Registration and Public Tracking (Syabil) · policies P1, P3, P4
+
+- [x] Seller registers a parcel with server-side validation (phone, address, weight)
+- [x] Cryptographically random, unique tracking number
+- [x] Seller views and searches own parcels only
+- [x] Public tracking shows status, date and time only (no name, phone or address)
+- [ ] **Rate limit on tracking lookups** (stops guessing tracking numbers)
+- [ ] Tests from the rubric: SQL injection in search, XSS in address, invalid phone or negative weight, changing a parcel ID in the URL, guessed or sequential tracking number, many rapid lookups
+
+### Module 3: Delivery Update and Admin Dashboard (Aizat) · policies P1, P3, P5
+
+- [x] Admin assigns parcels to active riders (status → Assigned, logged with user and time)
+- [x] Rider views assigned parcels only; any other parcel ID returns 403
+- [x] Admin dashboard of parcel counts by status (Admin only, no personal data)
+- [ ] **Rider status update** in order only: Assigned → Out for Delivery → Delivered or Failed; reject any other status value
+- [ ] **Proof-of-delivery photo upload**: one JPG or PNG; check type, size and real image content; rename to a random name; store outside the web folder
+- [ ] Every status change logged in `status_history` with user and time, without addresses (P5)
+- [ ] Tests from the rubric: uploading `.php` or `shell.php.jpg`, oversized image, invalid status value, updating a parcel not assigned to the rider, opening the dashboard without Admin login
+
+### Whole group
+
+- [ ] Declare the AI-assisted starting version (first commit) to the lecturer
+- [ ] Integrate all modules with the real login and move the database to MySQL
+- [ ] Deploy on a cloud server with HTTPS (local only loses 5 marks in criterion 1b) and run the Week 14 demo from it
+- [ ] Delete or anonymise recipient data 12 months after delivery (P3)
+- [ ] Security scans with OWASP ZAP and request tampering with Burp Suite
+- [ ] **Security test case document**, organised by module: input, expected result, actual result, owner's name. More than 5 input types per module for full marks in criterion 3
+- [ ] Rehearse the live demo: about 10 minutes each, showing failed attack attempts and explaining your own code
