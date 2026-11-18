@@ -73,24 +73,20 @@ python -m pytest tests -v
 ```
 Each test checks one security requirement from the slides (SR1.x, SR2.x, SR3.x).
 
-## Working on your module with an AI assistant
+## Working on your module
 
-AI help is allowed by the lecturer, but you are marked on explaining **your own code** in the live demo.
-The file `AGENTS.md` tells the AI the project rules, and `docs/tasks/` has one task brief per member.
+Each member has a task brief in `docs/tasks/` with their to-do items, the rubric's security controls
+and suggested tests. You are marked on explaining **your own code** in the live demo.
 
 1. **Get the code (first time):** `git clone https://github.com/aizatsaidi/parceltrack-lite.git`
    (or GitHub Desktop → Clone). Before each work session: `git pull`.
-2. **Open the folder in your AI tool** (Claude Code, Cursor, Copilot, Codex…). Most read `AGENTS.md`
-   automatically; if yours doesn't, start with the prompt below anyway.
-3. **Start with this prompt** (change the name and module):
-   > Read AGENTS.md and docs/tasks/M3-aizat.md. I am Aizat and I own Module 3. Help me with the first
-   > unticked item only. Explain your plan in simple words before changing any code.
-4. **Do one item at a time.** Read every change, ask the AI to explain anything unclear, test it in the
-   browser, and run `python -m pytest tests -q`.
-5. **Commit from your own account** with a message starting with your module code:
+2. **Open your task brief:** `docs/tasks/M1-aqil.md`, `docs/tasks/M2-syabil.md` or `docs/tasks/M3-aizat.md`.
+3. **Do one item at a time.** Make sure you understand every line, test it in the browser, and run
+   `python -m pytest tests -q`.
+4. **Commit from your own account** with a message starting with your module code:
    `git add -A` → `git commit -m "M3: add rider status update"` → `git pull` → `git push`.
    Then tick the item in the checklist below.
-6. **Only edit your own module folder.** Tell the group before changing shared files
+5. **Only edit your own module folder.** Tell the group before changing shared files
    (`models.py`, `__init__.py`, `security.py`, `seed.py`, `base.html`, `requirements.txt`).
 
 ## Checklist to Week 14 (matches the lecturer's rubric)
@@ -131,7 +127,6 @@ Rubric marks per member: 1a functions (5), 1b deployment and integration (10), 2
 
 ### Whole group
 
-- [ ] Declare the AI-assisted starting version (first commit) to the lecturer
 - [ ] Integrate all modules with the real login and move the database to MySQL
 - [ ] Deploy on a cloud server with HTTPS (local only loses 5 marks in criterion 1b) and run the Week 14 demo from it
 - [ ] Delete or anonymise recipient data 12 months after delivery (P3)

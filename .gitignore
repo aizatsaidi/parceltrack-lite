@@ -10,3 +10,7 @@ __pycache__/
 *.pyc
 venv/
 .venv/
+
+# Personal tool settings (kept on your own computer only)
+AGENTS.md
+CLAUDE.md
