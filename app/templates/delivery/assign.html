@@ -1,47 +1,65 @@
 {% extends "base.html" %}
-{% block title %}Assign parcels{% endblock %}
+{% from "_macros.html" import icon, waybill, avatar %}
+{% block title %}Dashboard{% endblock %}
 {% block content %}
-<h2 class="h4 mb-3">Parcel summary</h2>
-<div class="row g-3 mb-4">
+<div class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p>Every parcel by status, and the ones waiting for a rider.</p>
+  </div>
+</div>
+
+{% set STAT_ICONS = {"Registered": "package", "Assigned": "user", "Out for Delivery": "truck", "Delivered": "check-circle", "Failed": "alert"} %}
+<h2 class="visually-hidden">Parcels by status</h2>
+<div class="stats">
   {% for status, n in counts.items() %}
-    <div class="col">
-      <div class="card text-center h-100">
-        <div class="card-body">
-          <div class="display-6 fw-bold">{{ n }}</div>
-          <div class="small text-secondary">{{ status }}</div>
-        </div>
+    <div class="card stat stat-{{ status|lower|replace(' ', '-') }}">
+      <div class="top">
+        <span class="name">{{ status }}</span>
+        <span class="chip-icon">{{ icon(STAT_ICONS.get(status, "package")) }}</span>
       </div>
+      <div class="value">{{ n }}</div>
     </div>
   {% endfor %}
 </div>
 
-<h2 class="h4 mb-3">Assign parcels to riders</h2>
 <div class="card">
-  <table class="table mb-0 align-middle">
-    <thead><tr><th>Tracking no.</th><th>Recipient</th><th>Weight</th><th>Registered</th><th style="width:40%">Assign to</th></tr></thead>
-    <tbody>
-    {% for p in parcels %}
-      <tr>
-        <td class="font-monospace">{{ p.tracking_no }}</td>
-        <td>{{ p.recipient_name }}</td>
-        <td>{{ '%.2f'|format(p.weight_kg) }} kg</td>
-        <td class="small">{{ p.created_at|myt('%d %b %H:%M') }}</td>
-        <td>
-          <form method="post" class="d-flex gap-2">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="parcel_id" value="{{ p.id }}">
-            <select name="rider_id" class="form-select form-select-sm" required>
-              <option value="">Choose rider…</option>
-              {% for r in riders %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
-            </select>
-            <button class="btn btn-sm btn-dark">Assign</button>
-          </form>
-        </td>
-      </tr>
-    {% else %}
-      <tr><td colspan="5" class="text-center text-secondary py-4">No parcels waiting to be assigned.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+  <div class="card-head">
+    <h2>Waiting for a rider</h2>
+    <span class="count">{{ parcels|length }} parcel{{ '' if parcels|length == 1 else 's' }}</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Tracking number</th><th>Recipient</th><th>Weight</th><th>Registered</th><th>Assign to</th></tr></thead>
+      <tbody>
+      {% for p in parcels %}
+        <tr>
+          <td>{{ waybill(p.tracking_no, small=true) }}</td>
+          <td><span class="person">{{ avatar(p.recipient_name) }}{{ p.recipient_name }}</span></td>
+          <td class="muted">{{ '%.2f'|format(p.weight_kg) }} kg</td>
+          <td class="small muted">{{ p.created_at|myt('%d %b, %H:%M') }}</td>
+          <td>
+            <form method="post" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="parcel_id" value="{{ p.id }}">
+              <label class="visually-hidden" for="rider-{{ p.id }}">Rider for {{ p.tracking_no }}</label>
+              <select class="select" id="rider-{{ p.id }}" name="rider_id" required>
+                <option value="">Choose a rider</option>
+                {% for r in riders %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
+              </select>
+              <button class="button button-small">Assign</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="empty">
+          <div class="chip-icon">{{ icon("check-circle") }}</div>
+          <strong>Every parcel has a rider.</strong>
+          New parcels appear here when sellers register them.
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

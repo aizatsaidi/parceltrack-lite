@@ -1,31 +1,51 @@
 {% extends "base.html" %}
+{% from "_macros.html" import icon, status_badge, waybill, avatar %}
 {% block title %}My parcels{% endblock %}
+{% block topbar_actions %}
+  <a class="button" href="{{ url_for('parcels.new_parcel') }}">{{ icon("plus") }} Register a parcel</a>
+{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h2 class="h4 mb-0">My parcels</h2>
-  <a class="btn btn-dark" href="{{ url_for('parcels.new_parcel') }}">+ Register parcel</a>
+<div class="page-head">
+  <div>
+    <h1>My parcels</h1>
+    <p>Every parcel you've registered and where it is now.</p>
+  </div>
 </div>
-<form class="d-flex gap-2 mb-3" method="get">
-  <input class="form-control" name="q" value="{{ q }}" maxlength="50" placeholder="Search by tracking number or recipient name">
-  <button class="btn btn-outline-dark">Search</button>
-</form>
+
 <div class="card">
-  <table class="table mb-0 align-middle">
-    <thead><tr><th>Tracking no.</th><th>Recipient</th><th>Phone</th><th>Weight</th><th>Status</th><th>Registered</th></tr></thead>
-    <tbody>
-    {% for p in parcels %}
-      <tr>
-        <td class="font-monospace">{{ p.tracking_no }}</td>
-        <td>{{ p.recipient_name }}</td>
-        <td>{{ p.recipient_phone }}</td>
-        <td>{{ '%.2f'|format(p.weight_kg) }} kg</td>
-        <td><span class="badge text-bg-secondary status-pill">{{ p.status }}</span></td>
-        <td class="small">{{ p.created_at|myt('%d %b %Y %H:%M') }}</td>
-      </tr>
-    {% else %}
-      <tr><td colspan="6" class="text-center text-secondary py-4">No parcels found.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+  <div class="card-head">
+    <form class="inline-form" method="get" role="search">
+      <div class="field-icon">
+        {{ icon("search") }}
+        <label class="visually-hidden" for="q">Search parcels</label>
+        <input class="input" id="q" name="q" value="{{ q }}" maxlength="50" placeholder="Search tracking number or recipient">
+      </div>
+      <button class="button button-secondary">Search</button>
+    </form>
+    <span class="count">{{ parcels|length }} parcel{{ '' if parcels|length == 1 else 's' }}</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Tracking number</th><th>Recipient</th><th>Phone</th><th>Weight</th><th>Status</th><th>Registered</th></tr></thead>
+      <tbody>
+      {% for p in parcels %}
+        <tr>
+          <td>{{ waybill(p.tracking_no, small=true) }}</td>
+          <td><span class="person">{{ avatar(p.recipient_name) }}{{ p.recipient_name }}</span></td>
+          <td class="muted">{{ p.recipient_phone }}</td>
+          <td class="muted">{{ '%.2f'|format(p.weight_kg) }} kg</td>
+          <td>{{ status_badge(p.status) }}</td>
+          <td class="small muted">{{ p.created_at|myt('%d %b %Y, %H:%M') }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="empty">
+          <div class="chip-icon">{{ icon("inbox") }}</div>
+          <strong>No parcels found.</strong>
+          {% if q %}Try a different search.{% else %}<a href="{{ url_for('parcels.new_parcel') }}">Register your first parcel</a>{% endif %}
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

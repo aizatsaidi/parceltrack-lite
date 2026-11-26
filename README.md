@@ -89,6 +89,54 @@ and suggested tests. You are marked on explaining **your own code** in the live 
 5. **Only edit your own module folder.** Tell the group before changing shared files
    (`models.py`, `__init__.py`, `security.py`, `seed.py`, `base.html`, `requirements.txt`).
 
+## UI guide (use these for every new page)
+
+All styles live in `app/static/css/app.css`, with light and dark mode built in. Don't add `<style>` blocks,
+new colours, or external fonts or CSS: the fonts (Inter and IBM Plex Mono) and icons are bundled, so the
+site works offline. Logged-in users get the sidebar layout automatically; visitors get the top-bar layout.
+
+**Page setup**
+
+```html
+{% extends "base.html" %}
+{% from "_macros.html" import icon, status_badge, waybill, route, avatar %}
+{% block title %}Page name{% endblock %}
+{% block content_class %}content-narrow{% endblock %}   {# optional: narrow page (forms, rider pages) #}
+{% block topbar_actions %}<a class="button" href="...">{{ icon("plus") }} Action</a>{% endblock %}  {# optional #}
+{% block content %}
+  <div class="page-head"><div><h1>Title</h1><p>One line explaining the page.</p></div></div>
+  …
+{% endblock %}
+```
+
+**Macros** (`app/templates/_macros.html`)
+
+| Macro | Use it for |
+|---|---|
+| `{{ icon("truck") }}` | Icons: package, truck, dashboard, search, plus, user, user-plus, phone, pin, weight, clock, check, check-circle, x, alert, info, shield, lock, store, inbox, list, arrow-left, chevron-right, logout, menu, sun, moon |
+| `{{ status_badge(parcel.status) }}` | Every status shown anywhere: coloured pill that always includes the word |
+| `{{ waybill(parcel.tracking_no) }}` | Every tracking number. `large=true, sub="…"` for page headers |
+| `{{ route(events) }}` | Status timeline with progress bar. `events` = list of `(status, datetime)`, oldest first |
+| `{{ avatar(name) }}` | Round initials for a person |
+
+**Classes**
+
+| Class | What it is |
+|---|---|
+| `card`, `card-pad`, `card-head`, `card-body`, `card-title` | Content boxes. `card-head` holds a title or search plus a `count` pill |
+| `page-head` | Page title with a one-line description |
+| `field`, `input`, `select`, `textarea`, `hint`, `field-icon` | Form parts. Wrap each label and input in `<div class="field">`; `field-icon` puts an icon inside an input |
+| `inline-form` | Field and button on one line (search, assign) |
+| `button` | Main action. `button-secondary`, `button-ghost`, `button-small`, `button-lg`, `button-block`, `button-icon` |
+| `table-wrap` + `data-table` | Tables inside a `card`. `td class="empty"` with a `chip-icon` for the "nothing here" row. `person` = avatar and name |
+| `stats` + `card stat stat-<status>` | Status count cards on the dashboard |
+| `job-list` + `card job` | Big tappable rows for riders on phones |
+| `facts` + `fact` (`k` label, `v` value) | Label and value list with an icon per row |
+| `notice notice-success / -danger / -warning / -info` | Messages (put an `icon()` first). Flash messages already use these |
+| `chip-icon`, `back-link`, `muted`, `small`, `mono` | Small helpers |
+
+Flash categories: `success`, `danger`, `warning`, `info`. Every POST form still needs the CSRF hidden field.
+
 ## Checklist to Week 14 (matches the lecturer's rubric)
 
 Tick items off as they are done. Each member writes the code for their own module (rubric rule 5).

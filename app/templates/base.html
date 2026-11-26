@@ -1,50 +1,117 @@
+{% from "_macros.html" import icon, avatar %}
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}ParcelTrack Lite{% endblock %} · RapidExpress</title>
+  <title>{% block title %}ParcelTrack Lite{% endblock %} | RapidExpress</title>
+  <script>
+    /* Apply the saved light/dark theme before the page draws, to avoid a flash. */
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("pt-theme"); } catch (e) {}
+      if (!t) t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
   <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
-  <style>
-    body { background: #f6f4ef; }
-    .navbar { background: #14213d; }
-    .brand-accent { color: #f08a4b; }
-    .card { border-color: #ddd6c8; }
-    .status-pill { font-size: .85rem; }
-  </style>
+  <link href="{{ url_for('static', filename='css/app.css') }}" rel="stylesheet">
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
 </head>
 <body>
-<nav class="navbar navbar-expand navbar-dark mb-4">
-  <div class="container">
-    <a class="navbar-brand fw-bold" href="{{ url_for('home') }}">Parcel<span class="brand-accent">Track</span> Lite</a>
-    <div class="navbar-nav ms-auto align-items-center">
-      <a class="nav-link" href="{{ url_for('parcels.track') }}">Track parcel</a>
-      {% if current_user.is_authenticated %}
-        {% if current_user.role == 'seller' %}
-          <a class="nav-link" href="{{ url_for('parcels.my_parcels') }}">My parcels</a>
-        {% elif current_user.role == 'rider' %}
-          <a class="nav-link" href="{{ url_for('delivery.rider_parcels') }}">My deliveries</a>
-        {% elif current_user.role == 'admin' %}
-          <a class="nav-link" href="{{ url_for('delivery.assign') }}">Assign parcels</a>
-        {% endif %}
-        <span class="navbar-text text-light mx-2 small">{{ current_user.name }} ({{ current_user.role }})</span>
-        <form method="post" action="{{ url_for('auth.logout') }}" class="d-inline">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <button class="btn btn-sm btn-outline-light">Log out</button>
-        </form>
-      {% else %}
-        <a class="nav-link" href="{{ url_for('auth.login') }}">Log in</a>
-      {% endif %}
-    </div>
-  </div>
-</nav>
-<main class="container mb-5">
+{% set here = request.endpoint or "" %}
+
+{% macro flashes() %}
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% for category, message in messages %}
-      <div class="alert alert-{{ category }}">{{ message }}</div>
+      <div class="notice notice-{{ category }}" role="{{ 'alert' if category == 'danger' else 'status' }}">
+        {{ icon({"success": "check-circle", "danger": "alert", "warning": "alert"}.get(category, "info")) }}
+        <span>{{ message }}</span>
+      </div>
     {% endfor %}
   {% endwith %}
-  {% block content %}{% endblock %}
+{% endmacro %}
+
+{% macro theme_button(cls="button-ghost button-icon") %}
+  <button type="button" class="button {{ cls }}" data-theme-toggle aria-label="Switch light or dark mode" title="Switch light or dark mode">
+    <span class="theme-dark-only">{{ icon("sun") }}</span><span class="theme-light-only">{{ icon("moon") }}</span>
+  </button>
+{% endmacro %}
+
+{% macro brand() %}
+  <a class="brand" href="{{ url_for('home') }}">
+    <span class="brand-mark">{{ icon("package") }}</span>
+    <span>ParcelTrack<small>by RapidExpress</small></span>
+  </a>
+{% endmacro %}
+
+{% if current_user.is_authenticated %}
+{# ================= App layout: sidebar + content ================= #}
+<div class="app" data-app>
+  <aside class="sidebar" id="sidebar" aria-label="Main navigation">
+    {{ brand() }}
+    <nav>
+      <div class="nav-label">Menu</div>
+      {% if current_user.role == 'admin' %}
+        <a class="nav-item" href="{{ url_for('delivery.assign') }}" {% if here == 'delivery.assign' %}aria-current="page"{% endif %}>{{ icon("dashboard") }} Dashboard</a>
+      {% elif current_user.role == 'seller' %}
+        <a class="nav-item" href="{{ url_for('parcels.my_parcels') }}" {% if here == 'parcels.my_parcels' %}aria-current="page"{% endif %}>{{ icon("list") }} My parcels</a>
+        <a class="nav-item" href="{{ url_for('parcels.new_parcel') }}" {% if here == 'parcels.new_parcel' %}aria-current="page"{% endif %}>{{ icon("plus") }} Register a parcel</a>
+      {% elif current_user.role == 'rider' %}
+        <a class="nav-item" href="{{ url_for('delivery.rider_parcels') }}" {% if here.startswith('delivery.rider') %}aria-current="page"{% endif %}>{{ icon("truck") }} My deliveries</a>
+      {% endif %}
+      <a class="nav-item" href="{{ url_for('parcels.track') }}" {% if here == 'parcels.track' %}aria-current="page"{% endif %}>{{ icon("search") }} Track a parcel</a>
+    </nav>
+    <div class="sidebar-foot">
+      {{ theme_button("button-ghost button-block") }}
+      <div class="user-card">
+        {{ avatar(current_user.name) }}
+        <div>
+          <div class="name">{{ current_user.name }}</div>
+          <div class="role">{{ current_user.role }}</div>
+        </div>
+        <form method="post" action="{{ url_for('auth.logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="button button-ghost button-icon" aria-label="Log out" title="Log out">{{ icon("logout") }}</button>
+        </form>
+      </div>
+    </div>
+  </aside>
+  <div class="scrim" data-nav-close></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button type="button" class="button button-secondary button-icon menu-button" data-nav-open aria-controls="sidebar" aria-label="Open menu">{{ icon("menu") }}</button>
+      <div>
+        <div class="greeting" data-greeting data-name="{{ current_user.name }}">Hello, {{ current_user.name }}</div>
+        <div class="date" data-today></div>
+      </div>
+      <div class="topbar-actions">{% block topbar_actions %}{% endblock %}</div>
+    </header>
+    <main class="content {% block content_class %}{% endblock %}">
+      {{ flashes() }}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+
+{% else %}
+{# ================= Public layout: top bar + centred content ================= #}
+<header class="public-top">
+  {{ brand() }}
+  <nav aria-label="Main">
+    <a class="link" href="{{ url_for('parcels.track') }}" {% if here == 'parcels.track' %}aria-current="page"{% endif %}>Track a parcel</a>
+    {{ theme_button() }}
+    {% if here != 'auth.login' %}<a class="button button-secondary button-small" href="{{ url_for('auth.login') }}">Log in</a>{% endif %}
+  </nav>
+</header>
+<main class="public-main">
+  <div class="{% block wrap_class %}wrap{% endblock %}">
+    {{ flashes() }}
+    {% block public_content %}{{ self.content() }}{% endblock %}
+  </div>
 </main>
+<footer class="site-foot"><p>RapidExpress Sdn. Bhd. Recipient details are only used to deliver parcels.</p></footer>
+{% endif %}
 </body>
 </html>
