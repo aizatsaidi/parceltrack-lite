@@ -1,34 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Seller registration{% endblock %}
+{% block title %}Create a seller account{% endblock %}
+{% block page_class %}page-narrow{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-md-6">
-    <div class="card shadow-sm">
-      <div class="card-body p-4">
-        <h2 class="h4 mb-3">Create a seller account</h2>
-        <form method="post">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <div class="mb-3">
-            <label class="form-label">Shop or seller name</label>
-            <input name="name" class="form-control" maxlength="100" value="{{ name or '' }}" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Email</label>
-            <input type="email" name="email" class="form-control" maxlength="120" value="{{ email or '' }}" required>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Password</label>
-            <input type="password" name="password" class="form-control" minlength="10" required>
-            <div class="form-text">At least 10 characters. Don't reuse a password from another site.</div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Confirm password</label>
-            <input type="password" name="confirm" class="form-control" minlength="10" required>
-          </div>
-          <button class="btn btn-dark w-100">Create account</button>
-        </form>
-      </div>
+<h1>Create a seller account</h1>
+<p class="muted">Register parcels and follow their delivery. Riders get their accounts from RapidExpress.</p>
+<div class="panel">
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="name">Shop or seller name</label>
+      <input class="input" id="name" name="name" maxlength="100" value="{{ name or '' }}" required>
     </div>
-  </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input class="input" type="email" id="email" name="email" maxlength="120" value="{{ email or '' }}" required>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input class="input" type="password" id="password" name="password" minlength="10" required aria-describedby="pw-hint">
+      <p class="hint" id="pw-hint">At least 10 characters. Use one you don't use on any other site.</p>
+    </div>
+    <div class="field">
+      <label for="confirm">Confirm password</label>
+      <input class="input" type="password" id="confirm" name="confirm" minlength="10" required>
+    </div>
+    <button class="button button-block">Create account</button>
+  </form>
 </div>
 {% endblock %}

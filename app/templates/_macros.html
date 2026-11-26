@@ -1,0 +1,47 @@
+{#
+  Shared building blocks for every module (Task 1).
+  Import at the top of a page:
+    {% from "_macros.html" import status_badge, waybill, route %}
+#}
+
+{# Coloured badge that always includes the status word (never colour alone). #}
+{% macro status_badge(status) -%}
+<span class="status status-{{ status|lower|replace(' ', '-') }}">{{ status }}</span>
+{%- endmacro %}
+
+{# Tracking number printed like a waybill. The bars are decoration only,
+   drawn from the characters so each parcel looks different. #}
+{% macro waybill(tracking_no, small=false) -%}
+<span class="waybill{% if small %} waybill-small{% endif %}">
+  <span class="bars" aria-hidden="true">
+    {%- for ch in tracking_no -%}
+      {%- set n = ("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-".find(ch|upper) + loop.index) % 9 -%}
+      <i style="width:{{ 1 + n % 3 }}px;margin-right:{{ 1 + (n // 3) % 3 }}px"></i>
+      <i style="width:{{ 1 + (n + 1) % 2 }}px;margin-right:{{ 2 + n % 2 }}px"></i>
+    {%- endfor -%}
+  </span>
+  <span class="code">{{ tracking_no }}</span>
+</span>
+{%- endmacro %}
+
+{# Delivery route timeline.
+   events: list of (status, datetime) pairs, oldest first. #}
+{% macro route(events) -%}
+{%- set reached = {} -%}
+{%- for status, when in events -%}{%- set _ = reached.update({status: when}) -%}{%- endfor -%}
+{%- set last = events[-1][0] if events else none -%}
+{%- set stops = ["Registered", "Assigned", "Out for Delivery", "Failed" if "Failed" in reached else "Delivered"] -%}
+<ol class="route">
+  {%- for stop in stops %}
+    {%- if stop == last and stop == "Failed" %}{% set state = "is-failed" %}
+    {%- elif stop == last %}{% set state = "is-current" %}
+    {%- elif stop in reached %}{% set state = "is-done" %}
+    {%- else %}{% set state = "is-upcoming" %}{% endif %}
+  <li class="{{ state }}">
+    <span class="stop" aria-hidden="true"></span>
+    <span class="label">{{ stop }}{% if state == "is-current" %}<span class="visually-hidden"> (current status)</span>{% endif %}</span>
+    <span class="when">{% if stop in reached %}{{ reached[stop]|myt('%d %b %Y, %H:%M') }}{% else %}Not yet{% endif %}</span>
+  </li>
+  {%- endfor %}
+</ol>
+{%- endmacro %}

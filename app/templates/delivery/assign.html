@@ -1,45 +1,48 @@
 {% extends "base.html" %}
-{% block title %}Assign parcels{% endblock %}
+{% from "_macros.html" import waybill %}
+{% block title %}Dashboard{% endblock %}
 {% block content %}
-<h2 class="h4 mb-3">Parcel summary</h2>
-<div class="row g-3 mb-4">
+<h1>Dashboard</h1>
+
+<h2 class="visually-hidden">Parcels by status</h2>
+<div class="tally">
   {% for status, n in counts.items() %}
-    <div class="col">
-      <div class="card text-center h-100">
-        <div class="card-body">
-          <div class="display-6 fw-bold">{{ n }}</div>
-          <div class="small text-secondary">{{ status }}</div>
-        </div>
-      </div>
+    <div class="bin bin-{{ status|lower|replace(' ', '-') }}">
+      <div class="count">{{ n }}</div>
+      <div class="name">{{ status }}</div>
     </div>
   {% endfor %}
 </div>
 
-<h2 class="h4 mb-3">Assign parcels to riders</h2>
-<div class="card">
-  <table class="table mb-0 align-middle">
-    <thead><tr><th>Tracking no.</th><th>Recipient</th><th>Weight</th><th>Registered</th><th style="width:40%">Assign to</th></tr></thead>
+<div class="page-head">
+  <h2>Waiting for a rider</h2>
+  <span class="muted small">{{ parcels|length }} parcel{{ '' if parcels|length == 1 else 's' }}</span>
+</div>
+<div class="table-wrap">
+  <table class="data-table">
+    <thead><tr><th>Tracking number</th><th>Recipient</th><th>Weight</th><th>Registered</th><th>Assign to</th></tr></thead>
     <tbody>
     {% for p in parcels %}
       <tr>
-        <td class="font-monospace">{{ p.tracking_no }}</td>
+        <td>{{ waybill(p.tracking_no, small=true) }}</td>
         <td>{{ p.recipient_name }}</td>
         <td>{{ '%.2f'|format(p.weight_kg) }} kg</td>
-        <td class="small">{{ p.created_at|myt('%d %b %H:%M') }}</td>
+        <td class="small muted">{{ p.created_at|myt('%d %b, %H:%M') }}</td>
         <td>
-          <form method="post" class="d-flex gap-2">
+          <form method="post" class="inline-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="parcel_id" value="{{ p.id }}">
-            <select name="rider_id" class="form-select form-select-sm" required>
-              <option value="">Choose rider…</option>
+            <label class="visually-hidden" for="rider-{{ p.id }}">Rider for {{ p.tracking_no }}</label>
+            <select class="select" id="rider-{{ p.id }}" name="rider_id" required>
+              <option value="">Choose a rider</option>
               {% for r in riders %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
             </select>
-            <button class="btn btn-sm btn-dark">Assign</button>
+            <button class="button">Assign</button>
           </form>
         </td>
       </tr>
     {% else %}
-      <tr><td colspan="5" class="text-center text-secondary py-4">No parcels waiting to be assigned.</td></tr>
+      <tr><td colspan="5" class="empty">Every parcel has a rider. New parcels appear here when sellers register them.</td></tr>
     {% endfor %}
     </tbody>
   </table>

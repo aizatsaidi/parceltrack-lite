@@ -89,6 +89,48 @@ and suggested tests. You are marked on explaining **your own code** in the live 
 5. **Only edit your own module folder.** Tell the group before changing shared files
    (`models.py`, `__init__.py`, `security.py`, `seed.py`, `base.html`, `requirements.txt`).
 
+## UI guide (use these for every new page)
+
+All styles live in `app/static/css/app.css`. Don't add `<style>` blocks, new colours or external
+fonts or CSS. Fonts (Archivo and IBM Plex Mono) are bundled, so the site works offline.
+
+**Page setup**
+
+```html
+{% extends "base.html" %}
+{% from "_macros.html" import status_badge, waybill, route %}
+{% block title %}Page name{% endblock %}
+{% block page_class %}page-narrow{% endblock %}   {# optional: narrow pages for forms and phones #}
+{% block content %} … {% endblock %}
+```
+
+**Macros** (`app/templates/_macros.html`)
+
+| Macro | Use it for |
+|---|---|
+| `{{ status_badge(parcel.status) }}` | Every status shown anywhere. Coloured pill that always includes the word |
+| `{{ waybill(parcel.tracking_no) }}` | Every tracking number. `small=true` inside tables and lists |
+| `{{ route(events) }}` | Status timeline. `events` = list of `(status, datetime)`, oldest first |
+
+**Classes**
+
+| Class | What it is |
+|---|---|
+| `page-head` | Row with the page title on the left and an action on the right |
+| `panel`, `panel-title` | White box for a group of content |
+| `facts` | Label and value list (`<dl class="facts"><dt>…</dt><dd>…</dd></dl>`) |
+| `field`, `input`, `select`, `textarea`, `hint` | Form parts. Wrap each label and input in `<div class="field">` |
+| `inline-form` | Field and button on one line (search, assign) |
+| `button` | Main action (dark). `button-tape` = the one most important action on a page (yellow). `button-ghost` = secondary. `button-small`, `button-block` |
+| `table-wrap` + `data-table` | Tables. `td class="empty"` for the "nothing here" row |
+| `job-list` + `job` | Big tappable rows for riders on phones |
+| `tally` + `bin bin-<status>` | Status count boxes on the dashboard |
+| `notice notice-success / -danger / -warning / -info` | Messages. Flash messages already use these |
+| `empty-state` | Box shown when a list is empty, telling the user what to do |
+| `back-link`, `muted`, `small`, `mono` | Small helpers |
+
+Flash categories: `success`, `danger`, `warning`, `info`. Every POST form still needs the CSRF hidden field.
+
 ## Checklist to Week 14 (matches the lecturer's rubric)
 
 Tick items off as they are done. Each member writes the code for their own module (rubric rule 5).
