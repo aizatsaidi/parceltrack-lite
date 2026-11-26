@@ -1,24 +1,35 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, waybill %}
+{% from "_macros.html" import icon, status_badge %}
 {% block title %}My deliveries{% endblock %}
-{% block page_class %}page-narrow{% endblock %}
+{% block content_class %}content-narrow{% endblock %}
 {% block content %}
-<h1>My deliveries</h1>
+<div class="page-head">
+  <div>
+    <h1>My deliveries</h1>
+    <p>{{ parcels|length }} parcel{{ '' if parcels|length == 1 else 's' }} assigned to you.</p>
+  </div>
+</div>
 {% if parcels %}
   <ul class="job-list">
     {% for p in parcels %}
       <li>
-        <a class="job" href="{{ url_for('delivery.rider_parcel_detail', parcel_id=p.id) }}">
-          <span>
-            {{ waybill(p.tracking_no, small=true) }}
-            <span class="who d-block">{{ p.recipient_name }}</span>
+        <a class="card job" href="{{ url_for('delivery.rider_parcel_detail', parcel_id=p.id) }}">
+          <span class="chip-icon">{{ icon("package") }}</span>
+          <span class="info">
+            <span class="mono fw-semibold">{{ p.tracking_no }}</span>
+            <span class="who">{{ icon("user") }} {{ p.recipient_name }}</span>
           </span>
           {{ status_badge(p.status) }}
+          <span class="chev">{{ icon("chevron-right") }}</span>
         </a>
       </li>
     {% endfor %}
   </ul>
 {% else %}
-  <div class="empty-state">No parcels are assigned to you yet. New deliveries appear here once the admin assigns them.</div>
+  <div class="card card-pad empty">
+    <div class="chip-icon">{{ icon("inbox") }}</div>
+    <strong>No deliveries yet.</strong>
+    New parcels appear here once the admin assigns them to you.
+  </div>
 {% endif %}
 {% endblock %}

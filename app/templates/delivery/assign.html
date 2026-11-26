@@ -1,50 +1,65 @@
 {% extends "base.html" %}
-{% from "_macros.html" import waybill %}
+{% from "_macros.html" import icon, waybill, avatar %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<h1>Dashboard</h1>
+<div class="page-head">
+  <div>
+    <h1>Dashboard</h1>
+    <p>Every parcel by status, and the ones waiting for a rider.</p>
+  </div>
+</div>
 
+{% set STAT_ICONS = {"Registered": "package", "Assigned": "user", "Out for Delivery": "truck", "Delivered": "check-circle", "Failed": "alert"} %}
 <h2 class="visually-hidden">Parcels by status</h2>
-<div class="tally">
+<div class="stats">
   {% for status, n in counts.items() %}
-    <div class="bin bin-{{ status|lower|replace(' ', '-') }}">
-      <div class="count">{{ n }}</div>
-      <div class="name">{{ status }}</div>
+    <div class="card stat stat-{{ status|lower|replace(' ', '-') }}">
+      <div class="top">
+        <span class="name">{{ status }}</span>
+        <span class="chip-icon">{{ icon(STAT_ICONS.get(status, "package")) }}</span>
+      </div>
+      <div class="value">{{ n }}</div>
     </div>
   {% endfor %}
 </div>
 
-<div class="page-head">
-  <h2>Waiting for a rider</h2>
-  <span class="muted small">{{ parcels|length }} parcel{{ '' if parcels|length == 1 else 's' }}</span>
-</div>
-<div class="table-wrap">
-  <table class="data-table">
-    <thead><tr><th>Tracking number</th><th>Recipient</th><th>Weight</th><th>Registered</th><th>Assign to</th></tr></thead>
-    <tbody>
-    {% for p in parcels %}
-      <tr>
-        <td>{{ waybill(p.tracking_no, small=true) }}</td>
-        <td>{{ p.recipient_name }}</td>
-        <td>{{ '%.2f'|format(p.weight_kg) }} kg</td>
-        <td class="small muted">{{ p.created_at|myt('%d %b, %H:%M') }}</td>
-        <td>
-          <form method="post" class="inline-form">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="parcel_id" value="{{ p.id }}">
-            <label class="visually-hidden" for="rider-{{ p.id }}">Rider for {{ p.tracking_no }}</label>
-            <select class="select" id="rider-{{ p.id }}" name="rider_id" required>
-              <option value="">Choose a rider</option>
-              {% for r in riders %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
-            </select>
-            <button class="button">Assign</button>
-          </form>
-        </td>
-      </tr>
-    {% else %}
-      <tr><td colspan="5" class="empty">Every parcel has a rider. New parcels appear here when sellers register them.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
+<div class="card">
+  <div class="card-head">
+    <h2>Waiting for a rider</h2>
+    <span class="count">{{ parcels|length }} parcel{{ '' if parcels|length == 1 else 's' }}</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Tracking number</th><th>Recipient</th><th>Weight</th><th>Registered</th><th>Assign to</th></tr></thead>
+      <tbody>
+      {% for p in parcels %}
+        <tr>
+          <td>{{ waybill(p.tracking_no, small=true) }}</td>
+          <td><span class="person">{{ avatar(p.recipient_name) }}{{ p.recipient_name }}</span></td>
+          <td class="muted">{{ '%.2f'|format(p.weight_kg) }} kg</td>
+          <td class="small muted">{{ p.created_at|myt('%d %b, %H:%M') }}</td>
+          <td>
+            <form method="post" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="parcel_id" value="{{ p.id }}">
+              <label class="visually-hidden" for="rider-{{ p.id }}">Rider for {{ p.tracking_no }}</label>
+              <select class="select" id="rider-{{ p.id }}" name="rider_id" required>
+                <option value="">Choose a rider</option>
+                {% for r in riders %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
+              </select>
+              <button class="button button-small">Assign</button>
+            </form>
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="empty">
+          <div class="chip-icon">{{ icon("check-circle") }}</div>
+          <strong>Every parcel has a rider.</strong>
+          New parcels appear here when sellers register them.
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

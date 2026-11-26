@@ -1,24 +1,39 @@
 {% extends "base.html" %}
-{% from "_macros.html" import waybill, route %}
+{% from "_macros.html" import icon, waybill, route, status_badge %}
 {% block title %}Track a parcel{% endblock %}
-{% block page_class %}page-narrow{% endblock %}
+{% block wrap_class %}wrap-mid{% endblock %}
+{% block content_class %}content-narrow{% endblock %}
 {% block content %}
-<h1>Track a parcel</h1>
-<form class="track-form mb-4" method="get">
-  <label class="visually-hidden" for="tracking_no">Tracking number</label>
-  <input class="input input-mono" id="tracking_no" name="tracking_no" value="{{ tracking_no }}" maxlength="20" placeholder="RX-7KQ2M9XAP4" autocomplete="off" required>
-  <button class="button button-tape">Track</button>
+<div class="page-head">
+  <div>
+    <h1>Track a parcel</h1>
+    <p>Status updates as the parcel moves.</p>
+  </div>
+</div>
+
+<form class="inline-form mb-4" method="get">
+  <div class="field-icon">
+    {{ icon("search") }}
+    <label class="visually-hidden" for="tracking_no">Tracking number</label>
+    <input class="input input-mono" id="tracking_no" name="tracking_no" value="{{ tracking_no }}" maxlength="20" placeholder="RX-7KQ2M9XAP4" autocomplete="off" required>
+  </div>
+  <button class="button button-lg">Track</button>
 </form>
 
 {% if not_found %}
-  <div class="notice notice-warning" role="status">No parcel has that tracking number. Check it against your receipt and try again.</div>
+  <div class="notice notice-warning" role="status">{{ icon("alert") }}<span>No parcel has that tracking number. Check it against your receipt and try again.</span></div>
 {% elif history %}
-  <div class="panel">
-    <div class="mb-4">{{ waybill(tracking_no) }}</div>
-    {% set events = [] %}
-    {% for h in history %}{% set _ = events.append((h.status, h.when)) %}{% endfor %}
-    {{ route(events) }}
+  <div class="card">
+    <div class="card-head">
+      {{ waybill(tracking_no, large=true, sub="Tracking number") }}
+      {{ status_badge(history[-1].status) }}
+    </div>
+    <div class="card-body">
+      {% set events = [] %}
+      {% for h in history %}{% set _ = events.append((h.status, h.when)) %}{% endfor %}
+      {{ route(events) }}
+    </div>
   </div>
-  <p class="small muted mt-3">For privacy, this page never shows the recipient's name, phone or address.</p>
+  <p class="small muted mt-3">{{ icon("shield") }} For privacy, this page never shows the recipient's name, phone or address.</p>
 {% endif %}
 {% endblock %}

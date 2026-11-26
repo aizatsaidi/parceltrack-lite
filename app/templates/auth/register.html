@@ -1,10 +1,12 @@
 {% extends "base.html" %}
+{% from "_macros.html" import icon %}
 {% block title %}Create a seller account{% endblock %}
-{% block page_class %}page-narrow{% endblock %}
+{% block wrap_class %}wrap-narrow{% endblock %}
 {% block content %}
-<h1>Create a seller account</h1>
-<p class="muted">Register parcels and follow their delivery. Riders get their accounts from RapidExpress.</p>
-<div class="panel">
+<div class="card auth-card">
+  <div class="chip-icon">{{ icon("user-plus", "icon-lg") }}</div>
+  <h1>Create a seller account</h1>
+  <p>Register parcels and follow their delivery. Riders get their accounts from RapidExpress.</p>
   <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="field">
@@ -13,7 +15,7 @@
     </div>
     <div class="field">
       <label for="email">Email</label>
-      <input class="input" type="email" id="email" name="email" maxlength="120" value="{{ email or '' }}" required>
+      <input class="input" type="email" id="email" name="email" maxlength="120" value="{{ email or '' }}" placeholder="you@example.com" required>
     </div>
     <div class="field">
       <label for="password">Password</label>
@@ -24,7 +26,8 @@
       <label for="confirm">Confirm password</label>
       <input class="input" type="password" id="confirm" name="confirm" minlength="10" required>
     </div>
-    <button class="button button-block">Create account</button>
+    <button class="button button-lg button-block">Create account</button>
   </form>
 </div>
+<p class="auth-foot">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
 {% endblock %}

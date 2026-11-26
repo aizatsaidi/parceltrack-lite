@@ -1,31 +1,32 @@
 {% extends "base.html" %}
-{% from "_macros.html" import status_badge, waybill, route %}
+{% from "_macros.html" import icon, status_badge, waybill, route %}
 {% block title %}{{ parcel.tracking_no }}{% endblock %}
-{% block page_class %}page-narrow{% endblock %}
+{% block content_class %}content-narrow{% endblock %}
 {% block content %}
-<a class="back-link" href="{{ url_for('delivery.rider_parcels') }}">Back to my deliveries</a>
+<a class="back-link" href="{{ url_for('delivery.rider_parcels') }}">{{ icon("arrow-left") }} My deliveries</a>
 
-<div class="page-head">
-  {{ waybill(parcel.tracking_no) }}
-  {{ status_badge(parcel.status) }}
+<div class="card">
+  <div class="card-head">
+    {{ waybill(parcel.tracking_no, large=true, sub="Assigned to you") }}
+    {{ status_badge(parcel.status) }}
+  </div>
+  <div class="card-body">
+    <h2 class="card-title">{{ icon("pin") }} Deliver to</h2>
+    <div class="facts">
+      <div class="fact">{{ icon("user") }}<div><div class="k">Recipient</div><div class="v">{{ parcel.recipient_name }}</div></div></div>
+      <div class="fact">{{ icon("phone") }}<div><div class="k">Phone</div><div class="v"><a href="tel:{{ parcel.recipient_phone|replace('-', '')|replace(' ', '') }}">{{ parcel.recipient_phone }}</a></div></div></div>
+      <div class="fact">{{ icon("pin") }}<div><div class="k">Address</div><div class="v">{{ parcel.recipient_address }}</div></div></div>
+      <div class="fact">{{ icon("weight") }}<div><div class="k">Weight</div><div class="v">{{ '%.2f'|format(parcel.weight_kg) }} kg</div></div></div>
+    </div>
+  </div>
 </div>
 
-<section class="panel">
-  <h2 class="panel-title">Deliver to</h2>
-  <dl class="facts">
-    <dt>Recipient</dt><dd>{{ parcel.recipient_name }}</dd>
-    <dt>Phone</dt><dd><a href="tel:{{ parcel.recipient_phone|replace('-', '')|replace(' ', '') }}">{{ parcel.recipient_phone }}</a></dd>
-    <dt>Address</dt><dd>{{ parcel.recipient_address }}</dd>
-    <dt>Weight</dt><dd>{{ '%.2f'|format(parcel.weight_kg) }} kg</dd>
-  </dl>
-</section>
-
-<section class="panel">
-  <h2 class="panel-title">Delivery progress</h2>
+<div class="card card-pad">
+  <h2 class="card-title">{{ icon("clock") }} Delivery progress</h2>
   {% set events = [] %}
   {% for h in parcel.history %}{% set _ = events.append((h.new_status, h.changed_at)) %}{% endfor %}
   {{ route(events) }}
-</section>
+</div>
 
-<div class="notice notice-info mt-3">Updating the status and uploading the delivery photo come next (Task 6 and Task 9).</div>
+<div class="notice notice-info mt-3">{{ icon("info") }}<span>Updating the status and uploading the delivery photo come next (Task 6 and Task 9).</span></div>
 {% endblock %}
