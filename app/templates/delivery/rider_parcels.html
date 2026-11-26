@@ -9,6 +9,19 @@
     <p>{{ parcels|length }} parcel{{ '' if parcels|length == 1 else 's' }} assigned to you.</p>
   </div>
 </div>
+
+{% set n_todo = parcels|selectattr("status", "in", ["Assigned", "Out for Delivery"])|list|length %}
+{% set n_done = parcels|selectattr("status", "in", ["Delivered", "Failed"])|list|length %}
+{% if parcels %}
+<section class="banner banner-teal">
+  <div>
+    <div class="big">{{ n_todo }}</div>
+    <p>{{ "delivery" if n_todo == 1 else "deliveries" }} still to do{% if n_done %}, {{ n_done }} finished{% endif %}.</p>
+  </div>
+  <span class="banner-icon">{{ icon("truck", "icon-lg") }}</span>
+  <div class="meter" role="img" aria-label="{{ n_done }} of {{ parcels|length }} finished"><span style="width:{{ ((n_done / parcels|length) * 100)|round|int }}%"></span></div>
+</section>
+{% endif %}
 {% if parcels %}
   <ul class="job-list">
     {% for p in parcels %}

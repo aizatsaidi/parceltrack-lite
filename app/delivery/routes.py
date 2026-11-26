@@ -12,6 +12,8 @@ Security controls already in place:
   SR3.5  Every assignment is written to status_history with who and when
   SR3.6  Forms carry a CSRF token; templates escape recipient data
   SR3.7  The dashboard shows only counts per status, no personal data
+         (rider workload and recent activity show staff names, tracking numbers,
+         statuses and times only, never recipient details)
 
 Next steps: rider status update with valid order (SR3.3) and
 secure proof-of-delivery photo upload (SR3.4).
@@ -20,7 +22,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import current_user
 
 from .. import db
-from ..models import Parcel, User, record_status_change
+from ..models import Parcel, User, StatusHistory, record_status_change
 from ..security import role_required
 
 delivery_bp = Blueprint("delivery", __name__)
@@ -58,8 +60,28 @@ def assign():
     counts = {s: Parcel.query.filter_by(status=s).count() for s in STATUSES}
     waiting = Parcel.query.filter_by(status="Registered").order_by(Parcel.created_at).all()
     riders = User.query.filter_by(role="rider", is_active_account=True).order_by(User.name).all()
-    return render_template("delivery/assign.html", counts=counts,
-                           parcels=waiting, riders=riders)
+
+    # Rider workload: how many parcels each active rider is carrying right now
+    workload = [
+        {"name": r.name,
+         "active": Parcel.query.filter(Parcel.assigned_rider_id == r.id,
+                                       Parcel.status.in_(["Assigned", "Out for Delivery"])).count(),
+         "done": Parcel.query.filter_by(assigned_rider_id=r.id, status="Delivered").count()}
+        for r in riders
+    ]
+
+    # Recent activity from the audit log (P5): who changed which parcel, and when.
+    # Only tracking numbers, statuses, names of staff and times; never recipient details.
+    recent = (StatusHistory.query
+              .order_by(StatusHistory.changed_at.desc(), StatusHistory.id.desc())
+              .limit(5).all())
+    names = {u.id: u.name for u in User.query.filter(
+        User.id.in_({h.changed_by for h in recent})).all()} if recent else {}
+    activity = [{"tracking_no": h.parcel.tracking_no, "old": h.old_status, "new": h.new_status,
+                 "by": names.get(h.changed_by, "Unknown"), "when": h.changed_at} for h in recent]
+
+    return render_template("delivery/assign.html", counts=counts, total=sum(counts.values()),
+                           parcels=waiting, riders=riders, workload=workload, activity=activity)
 
 
 @delivery_bp.route("/rider/parcels")

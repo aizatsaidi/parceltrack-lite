@@ -10,7 +10,7 @@
     (function () {
       var t = null;
       try { t = localStorage.getItem("pt-theme"); } catch (e) {}
-      if (!t) t = window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+      if (t !== "dark") t = "light";   /* light by default; dark only if chosen */
       document.documentElement.setAttribute("data-theme", t);
     })();
   </script>

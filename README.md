@@ -43,7 +43,7 @@ To reset all demo data, stop the website, delete the file `parceltrack.db`, and 
 | Rider | ali@rapidexpress.test | RiderAliDemo#2026 |
 | Rider | siti@rapidexpress.test | RiderSitiDemo#2026 |
 
-Demo tracking numbers: `RX-DEMO7KQ2M9`, `RX-DEMOP4T8WZ`, `RX-DEMO9HN3QX`, `RX-DEMOB6R2VK`
+Demo tracking numbers: `RX-DEMO7KQ2M9`, `RX-DEMOP4T8WZ` (registered), `RX-DEMO9HN3QX`, `RX-DEMOB6R2VK` (assigned), `RX-DEMOT5W8LC` (out for delivery), `RX-DEMOH2Y6RF` (delivered)
 
 ---
 

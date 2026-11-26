@@ -2,31 +2,110 @@
 {% from "_macros.html" import icon, waybill, avatar %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<div class="page-head">
+{% set waiting_n = parcels|length %}
+{% set moving_n = counts.get("Assigned", 0) + counts.get("Out for Delivery", 0) %}
+
+<section class="banner">
   <div>
-    <h1>Dashboard</h1>
-    <p>Every parcel by status, and the ones waiting for a rider.</p>
+    <h2>Operations overview</h2>
+    <p>{{ total }} parcel{{ '' if total == 1 else 's' }} in the system. {{ waiting_n }} waiting for a rider, {{ moving_n }} on the move.</p>
   </div>
-</div>
+  <div class="actions">
+    <a class="button" href="#waiting">{{ icon("user") }} Assign riders</a>
+    <a class="button button-glass" href="{{ url_for('parcels.track') }}">{{ icon("search") }} Track a parcel</a>
+  </div>
+</section>
 
 {% set STAT_ICONS = {"Registered": "package", "Assigned": "user", "Out for Delivery": "truck", "Delivered": "check-circle", "Failed": "alert"} %}
 <h2 class="visually-hidden">Parcels by status</h2>
 <div class="stats">
   {% for status, n in counts.items() %}
+    {% set pct = ((n / total * 100) if total else 0)|round|int %}
     <div class="card stat stat-{{ status|lower|replace(' ', '-') }}">
       <div class="top">
         <span class="name">{{ status }}</span>
         <span class="chip-icon">{{ icon(STAT_ICONS.get(status, "package")) }}</span>
       </div>
       <div class="value">{{ n }}</div>
+      <div class="share" aria-hidden="true"><span style="width:{{ pct }}%"></span></div>
+      <div class="foot">{{ pct }}% of all parcels</div>
     </div>
   {% endfor %}
 </div>
 
-<div class="card">
+<div class="dash-grid">
+  {# ---------- Donut chart of status share ---------- #}
+  <section class="card card-pad">
+    <h2 class="card-title">{{ icon("dashboard") }} Status breakdown</h2>
+    {% set VARS = {"Registered": "registered", "Assigned": "assigned", "Out for Delivery": "out", "Delivered": "delivered", "Failed": "failed"} %}
+    {% set ns = namespace(acc=0, stops=[]) %}
+    {% for status, n in counts.items() %}
+      {% set start = ns.acc %}
+      {% set ns.acc = ns.acc + ((n / total * 100) if total else 0) %}
+      {% set ns.stops = ns.stops + ["var(--st-" ~ VARS[status] ~ ") " ~ start|round(2) ~ "% " ~ ns.acc|round(2) ~ "%"] %}
+    {% endfor %}
+    <div class="donut-wrap">
+      <div class="donut" role="img" aria-label="Parcels by status: {% for s, n in counts.items() %}{{ s }} {{ n }}{{ ', ' if not loop.last }}{% endfor %}"
+           style="background: {% if total %}conic-gradient({{ ns.stops|join(', ') }}){% else %}var(--surface-2){% endif %}">
+        <div class="center"><b>{{ total }}</b><span>parcels</span></div>
+      </div>
+      <ul class="legend">
+        {% for status, n in counts.items() %}
+          <li><span class="sw" style="background: var(--st-{{ VARS[status] }})"></span>{{ status }}<span class="n">{{ n }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+
+  {# ---------- Rider workload ---------- #}
+  <section class="card card-pad">
+    <h2 class="card-title">{{ icon("truck") }} Rider workload</h2>
+    {% if workload %}
+      {% set most = (workload|map(attribute="active")|max) or 1 %}
+      <ul class="workload">
+        {% for w in workload %}
+          <li>
+            {{ avatar(w.name) }}
+            <div>
+              <div class="name">{{ w.name }}</div>
+              <div class="sub">{{ w.done }} delivered so far</div>
+            </div>
+            <span class="num">{{ w.active }} active</span>
+            <div class="bar" aria-hidden="true"><span style="width:{{ (w.active / most * 100)|round|int }}%"></span></div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="card-empty">No active riders yet.</p>
+    {% endif %}
+  </section>
+
+  {# ---------- Recent activity (from the audit log) ---------- #}
+  <section class="card card-pad">
+    <h2 class="card-title">{{ icon("clock") }} Recent activity</h2>
+    {% if activity %}
+      {% set ACT_ICONS = {"Registered": "package", "Assigned": "user", "Out for Delivery": "truck", "Delivered": "check", "Failed": "x"} %}
+      <ul class="activity">
+        {% for a in activity %}
+          <li>
+            <span class="dot dot-{{ a.new|lower|replace(' ', '-') }}">{{ icon(ACT_ICONS.get(a.new, "package")) }}</span>
+            <div>
+              <div class="what"><span class="mono">{{ a.tracking_no }}</span> {{ "registered" if not a.old else "moved to " ~ a.new }}</div>
+              <div class="meta">by {{ a.by }}, {{ a.when|myt('%d %b, %H:%M') }}</div>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="card-empty">No activity yet.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="card" id="waiting">
   <div class="card-head">
     <h2>Waiting for a rider</h2>
-    <span class="count">{{ parcels|length }} parcel{{ '' if parcels|length == 1 else 's' }}</span>
+    <span class="count">{{ waiting_n }} parcel{{ '' if waiting_n == 1 else 's' }}</span>
   </div>
   <div class="table-wrap">
     <table class="data-table">
