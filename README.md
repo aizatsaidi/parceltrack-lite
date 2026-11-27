@@ -33,7 +33,9 @@ python run.py
 
 Open **http://127.0.0.1:5000** in your browser. To stop it, press `Ctrl + C` in the terminal.
 
-- **After pulling new code,** stop the website and run `python run.py` again, then press **Ctrl + F5** in the browser.
+- **Live reload:** while it runs, saving any file in `app/` refreshes the browser by itself (about 1 second).
+  Python changes restart the website first. This only happens with `python run.py` on your own laptop,
+  never on the cloud server, and Flask's debug mode stays off (P4).
 - **To reset the demo data,** stop the website, delete `parceltrack.db`, and start it again.
 
 ## Demo logins (fake test accounts only)

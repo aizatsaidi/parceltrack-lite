@@ -113,5 +113,19 @@
 </main>
 <footer class="site-foot"><p>RapidExpress Sdn. Bhd. Recipient details are only used to deliver parcels.</p></footer>
 {% endif %}
+{% if config.LIVE_RELOAD %}
+<script>
+  /* Local development only (python run.py): refresh the page when a file in app/ changes. */
+  (function () {
+    var last = null;
+    setInterval(function () {
+      fetch("/__dev/changed", { cache: "no-store" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) { if (last !== null && d.v !== last) location.reload(); last = d.v; })
+        .catch(function () { /* server restarting after a Python change; try again next second */ });
+    }, 1000);
+  })();
+</script>
+{% endif %}
 </body>
 </html>

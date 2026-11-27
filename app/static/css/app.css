@@ -210,15 +210,13 @@ a:hover { color: var(--primary-hover); text-decoration: underline; text-underlin
 /* Subtle dotted grid behind the home hero */
 .hero {
   position: relative; text-align: center; padding: 4rem 1rem 3rem;
-  border-radius: 24px; overflow: hidden;
 }
 .hero::before {
-  content: ""; position: absolute; inset: 0; z-index: -1;
-  background:
-    radial-gradient(600px 260px at 50% 0%, color-mix(in srgb, var(--primary) 16%, transparent), transparent 70%),
-    radial-gradient(circle at 1px 1px, var(--border-strong) 1px, transparent 0) 0 0 / 22px 22px;
-  mask-image: linear-gradient(to bottom, #000 55%, transparent);
-  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  /* dotted grid that fades out softly on every side, so it has no visible edges */
+  content: ""; position: absolute; inset: -40px -10%; z-index: -1;
+  background: radial-gradient(circle at 1px 1px, var(--border-strong) 1px, transparent 0) 0 0 / 22px 22px;
+  mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, #000 35%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 45%, #000 35%, transparent 100%);
 }
 .pill-note {
   display: inline-flex; align-items: center; gap: .45rem;
