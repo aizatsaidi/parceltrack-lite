@@ -17,20 +17,20 @@
   {# Delivery route illustration: warehouse to home, with the truck on the way #}
   <svg class="hero-art" viewBox="0 0 560 150" role="img" aria-label="A delivery truck on its way from the RapidExpress hub to a home">
     <defs>
-      <linearGradient id="road" x1="0" x2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#a855f7"/></linearGradient>
+      <linearGradient id="road" x1="0" x2="1"><stop offset="0" stop-color="#14b8a6"/><stop offset="1" stop-color="#10b981"/></linearGradient>
     </defs>
     <path d="M70 110 C 170 110, 190 40, 290 60 S 420 120, 490 92" fill="none" stroke="var(--border-strong)" stroke-width="10" stroke-linecap="round"/>
     <path d="M70 110 C 170 110, 190 40, 290 60" fill="none" stroke="url(#road)" stroke-width="10" stroke-linecap="round"/>
     <path d="M70 110 C 170 110, 190 40, 290 60 S 420 120, 490 92" fill="none" stroke="var(--surface)" stroke-width="2" stroke-dasharray="6 10"/>
     <g transform="translate(36 70)">
       <rect width="68" height="52" rx="10" fill="var(--surface)" stroke="var(--border-strong)" stroke-width="2"/>
-      <path d="M8 18 34 6l26 12" fill="none" stroke="#6366f1" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-      <rect x="24" y="28" width="20" height="24" rx="3" fill="#eef0ff" stroke="#6366f1" stroke-width="2"/>
+      <path d="M8 18 34 6l26 12" fill="none" stroke="#14b8a6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="24" y="28" width="20" height="24" rx="3" fill="#e7f8f4" stroke="#14b8a6" stroke-width="2"/>
     </g>
     <g transform="translate(255 28)">
-      <rect x="0" y="12" width="46" height="30" rx="6" fill="#4f46e5"/>
-      <path d="M46 20h14l10 11v11H46Z" fill="#7c3aed"/>
-      <rect x="50" y="23" width="9" height="8" rx="2" fill="#eef0ff"/>
+      <rect x="0" y="12" width="46" height="30" rx="6" fill="#0d9488"/>
+      <path d="M46 20h14l10 11v11H46Z" fill="#059669"/>
+      <rect x="50" y="23" width="9" height="8" rx="2" fill="#e7f8f4"/>
       <circle cx="14" cy="44" r="7" fill="var(--text)"/><circle cx="14" cy="44" r="3" fill="var(--surface)"/>
       <circle cx="58" cy="44" r="7" fill="var(--text)"/><circle cx="58" cy="44" r="3" fill="var(--surface)"/>
       <rect x="9" y="19" width="16" height="12" rx="2" fill="#fbbf24"/>
@@ -56,19 +56,19 @@
 </section>
 
 <section class="features" aria-label="Accounts">
-  <div class="card feature feature-sky">
+  <div class="card feature feature-gold">
     <div class="chip-icon">{{ icon("store") }}</div>
     <h3>For sellers</h3>
     <p>Register parcels in seconds and follow every delivery from one list.</p>
     <a href="{{ url_for('auth.register') }}">Create a seller account</a>
   </div>
-  <div class="card feature feature-amber">
+  <div class="card feature feature-orange">
     <div class="chip-icon">{{ icon("truck") }}</div>
     <h3>For riders</h3>
     <p>See your deliveries for the day and update each one from your phone.</p>
     <a href="{{ url_for('auth.login') }}">Log in</a>
   </div>
-  <div class="card feature feature-emerald">
+  <div class="card feature feature-green">
     <div class="chip-icon">{{ icon("shield") }}</div>
     <h3>Private by design</h3>
     <p>Tracking shows only the status. Names, phones and addresses stay with the people delivering.</p>

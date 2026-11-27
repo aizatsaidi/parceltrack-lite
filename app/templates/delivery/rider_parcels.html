@@ -13,7 +13,7 @@
 {% set n_todo = parcels|selectattr("status", "in", ["Assigned", "Out for Delivery"])|list|length %}
 {% set n_done = parcels|selectattr("status", "in", ["Delivered", "Failed"])|list|length %}
 {% if parcels %}
-<section class="banner banner-teal">
+<section class="banner banner-warm">
   <div>
     <div class="big">{{ n_todo }}</div>
     <p>{{ "delivery" if n_todo == 1 else "deliveries" }} still to do{% if n_done %}, {{ n_done }} finished{% endif %}.</p>

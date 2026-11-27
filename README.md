@@ -115,8 +115,8 @@ a local-only demo loses 5 marks). For your own module:
 
 All styles live in `app/static/css/app.css`, with light and dark mode built in (light by default). Don't add
 `<style>` blocks, new colours, or external fonts or CSS: the fonts (Inter and IBM Plex Mono) and icons are
-bundled, so the site works offline. Logged-in users get the gradient sidebar layout automatically; visitors
-get the top-bar layout.
+bundled, so the site works offline. Logged-in users get the teal gradient sidebar layout automatically; visitors
+get the top-bar layout. Theme colours are teal, green and gold; don't use blue or purple.
 
 **Page setup**
 
@@ -142,8 +142,8 @@ get the top-bar layout.
 | `{{ route(events) }}` | Status timeline with progress bar. `events` = list of `(status, datetime)`, oldest first |
 | `{{ avatar(name) }}` | Round initials for a person |
 
-**Status colours** (used by badges, tiles, charts and the timeline): Registered = sky blue,
-Assigned = indigo, Out for Delivery = amber, Delivered = emerald, Failed = rose.
+**Status colours** (used by badges, tiles, charts and the timeline): Registered = gold,
+Assigned = teal, Out for Delivery = orange, Delivered = green, Failed = rose.
 
 **Layout and content**
 
@@ -151,7 +151,7 @@ Assigned = indigo, Out for Delivery = amber, Delivered = emerald, Failed = rose.
 |---|---|
 | `card`, `card-pad`, `card-head`, `card-body`, `card-title` | Content boxes. `card-head` holds a title or search plus a `count` pill. An `icon()` first in `card-title` gets a coloured chip |
 | `page-head` | Page title with a one-line description |
-| `banner` (+ `banner-teal`) | Gradient welcome or summary strip. Inside: `actions` (buttons), `banner-icon`, `big` (large number), `meter > span` (progress) |
+| `banner` (+ `banner-warm`) | Gradient welcome or summary strip (teal-green, or warm orange with `banner-warm`). Inside: `actions` (buttons), `banner-icon`, `big` (large number), `meter > span` (progress) |
 | `dash-grid` | Three-column row of cards (two on tablets, one on phones) |
 | `facts` + `fact` (`k` label, `v` value) | Label and value list with an icon per row |
 | `table-wrap` + `data-table` | Tables inside a `card`. `td class="empty"` with a `chip-icon` for the "nothing here" row. `person` = avatar and name |
@@ -162,7 +162,7 @@ Assigned = indigo, Out for Delivery = amber, Delivered = emerald, Failed = rose.
 | Class | What it is |
 |---|---|
 | `stats` + `card stat stat-<status>` | Gradient status count cards on the dashboard, with `share > span` bar and `foot` text |
-| `summary` + `card tile tile-<colour>` | Gradient summary tiles: `tile-sky`, `tile-indigo`, `tile-amber`, `tile-emerald`, `tile-rose`, `tile-violet` |
+| `summary` + `card tile tile-<colour>` | Gradient summary tiles: `tile-teal`, `tile-gold`, `tile-orange`, `tile-green`, `tile-rose`, `tile-lime` |
 | `donut` + `legend` | Status donut chart (see `delivery/assign.html` for how it is built from real counts) |
 | `workload`, `activity` | Rider workload bars and the recent activity feed on the dashboard |
 | `job-list` + `card job job-<status>` | Big tappable rider rows with a coloured left edge by status |
@@ -174,7 +174,7 @@ Assigned = indigo, Out for Delivery = amber, Delivered = emerald, Failed = rose.
 |---|---|
 | `field`, `input`, `select`, `textarea`, `hint`, `field-icon` | Form parts. Wrap each label and input in `<div class="field">`; `field-icon` puts an icon inside an input |
 | `inline-form` | Field and button on one line (search, assign) |
-| `button` | Main action (indigo-violet gradient). `button-secondary`, `button-ghost`, `button-small`, `button-lg`, `button-block`, `button-icon` |
+| `button` | Main action (teal-green gradient). `button-secondary`, `button-ghost`, `button-small`, `button-lg`, `button-block`, `button-icon` |
 | `back-link`, `muted`, `small`, `mono` | Small helpers |
 
 Flash categories: `success`, `danger`, `warning`, `info`. Every POST form still needs the CSRF hidden field.
