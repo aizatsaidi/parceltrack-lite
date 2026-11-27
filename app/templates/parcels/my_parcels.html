@@ -16,10 +16,10 @@
 {% set n_move = parcels|selectattr("status", "in", ["Assigned", "Out for Delivery"])|list|length %}
 {% set n_done = parcels|selectattr("status", "equalto", "Delivered")|list|length %}
 <div class="summary">
-  <div class="card"><span class="chip-icon">{{ icon("package") }}</span><div><div class="value">{{ parcels|length }}</div><div class="name">{{ "Matching parcels" if q else "All parcels" }}</div></div></div>
-  <div class="card"><span class="chip-icon chip-registered">{{ icon("clock") }}</span><div><div class="value">{{ n_wait }}</div><div class="name">Waiting for a rider</div></div></div>
-  <div class="card"><span class="chip-icon chip-out">{{ icon("truck") }}</span><div><div class="value">{{ n_move }}</div><div class="name">On the way</div></div></div>
-  <div class="card"><span class="chip-icon chip-delivered">{{ icon("check-circle") }}</span><div><div class="value">{{ n_done }}</div><div class="name">Delivered</div></div></div>
+  <div class="card tile tile-violet"><span class="chip-icon">{{ icon("package") }}</span><div><div class="value">{{ parcels|length }}</div><div class="name">{{ "Matching parcels" if q else "All parcels" }}</div></div></div>
+  <div class="card tile tile-sky"><span class="chip-icon">{{ icon("clock") }}</span><div><div class="value">{{ n_wait }}</div><div class="name">Waiting for a rider</div></div></div>
+  <div class="card tile tile-amber"><span class="chip-icon">{{ icon("truck") }}</span><div><div class="value">{{ n_move }}</div><div class="name">On the way</div></div></div>
+  <div class="card tile tile-emerald"><span class="chip-icon">{{ icon("check-circle") }}</span><div><div class="value">{{ n_done }}</div><div class="name">Delivered</div></div></div>
 </div>
 
 <div class="card">

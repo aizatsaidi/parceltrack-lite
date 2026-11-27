@@ -33,7 +33,7 @@
   --ring: rgba(79, 70, 229, 0.35);
   --sidebar: #ffffff;
 
-  --st-registered: #475467;  --st-registered-bg: #f2f4f7;
+  --st-registered: #0369a1;  --st-registered-bg: #e0f2fe;
   --st-assigned: #3538cd;    --st-assigned-bg: #eef0ff;
   --st-out: #b54708;         --st-out-bg: #fff4e5;
   --st-delivered: #067647;   --st-delivered-bg: #e9f7ef;
@@ -70,7 +70,7 @@
   --ring: rgba(124, 127, 245, 0.45);
   --sidebar: #0f1218;
 
-  --st-registered: #b9c0cf;  --st-registered-bg: #222734;
+  --st-registered: #7dd3fc;  --st-registered-bg: #0c2a3d;
   --st-assigned: #a9abff;    --st-assigned-bg: #23264a;
   --st-out: #fdb022;         --st-out-bg: #3a2a12;
   --st-delivered: #47cd89;   --st-delivered-bg: #11301f;
@@ -571,5 +571,110 @@ a:hover { color: var(--primary-hover); text-decoration: underline; text-underlin
 .steps p { font-size: .85rem; color: var(--text-2); margin: 0; }
 @media (max-width: 900px) { .steps { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 520px) { .steps { grid-template-columns: 1fr; } }
+
+/* ==========================================================================
+   Colour layer: gradient sidebar, colourful background, filled stat tiles
+   ========================================================================== */
+:root {
+  --grad-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --grad-sky: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+  --grad-indigo: linear-gradient(135deg, #818cf8 0%, #4f46e5 100%);
+  --grad-amber: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+  --grad-emerald: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  --grad-rose: linear-gradient(135deg, #fb7185 0%, #e11d48 100%);
+  --grad-violet: linear-gradient(135deg, #c084fc 0%, #7c3aed 100%);
+  --sidebar-grad: linear-gradient(180deg, #312e81 0%, #4338ca 55%, #6d28d9 100%);
+  --mesh:
+    radial-gradient(700px 420px at 0% 0%, rgba(129, 140, 248, .28), transparent 70%),
+    radial-gradient(640px 420px at 100% 0%, rgba(244, 114, 182, .22), transparent 70%),
+    radial-gradient(760px 520px at 70% 100%, rgba(56, 189, 248, .20), transparent 70%);
+}
+:root[data-theme="dark"] {
+  --sidebar-grad: linear-gradient(180deg, #1e1b4b 0%, #26205e 55%, #3b1d6e 100%);
+  --mesh:
+    radial-gradient(700px 420px at 0% 0%, rgba(99, 102, 241, .22), transparent 70%),
+    radial-gradient(640px 420px at 100% 0%, rgba(219, 39, 119, .16), transparent 70%),
+    radial-gradient(760px 520px at 70% 100%, rgba(14, 165, 233, .14), transparent 70%);
+}
+
+/* Colourful page background */
+body { background: var(--mesh), var(--bg); background-attachment: fixed; }
+.app { background: none; }
+
+/* Gradient sidebar with white text */
+.sidebar { background: var(--sidebar-grad); border-right: 0; color: #fff; box-shadow: 4px 0 24px -12px rgba(49, 46, 129, .5); }
+.sidebar .brand, .sidebar .brand:hover { color: #fff; }
+.sidebar .brand small { color: rgba(255, 255, 255, .65); }
+.sidebar .brand-mark { background: #fff; color: #4f46e5; box-shadow: 0 6px 16px rgba(0, 0, 0, .2); }
+.sidebar .nav-label { color: rgba(255, 255, 255, .55); }
+.sidebar .nav-item { color: rgba(255, 255, 255, .82); }
+.sidebar .nav-item:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.sidebar .nav-item[aria-current="page"] { background: #fff; color: #4338ca; box-shadow: 0 6px 16px -6px rgba(0, 0, 0, .35); }
+:root[data-theme="dark"] .sidebar .nav-item[aria-current="page"] { background: rgba(255, 255, 255, .16); color: #fff; }
+.sidebar-foot { border-top-color: rgba(255, 255, 255, .16); }
+.sidebar .button-ghost { color: rgba(255, 255, 255, .85); }
+.sidebar .button-ghost:hover { background: rgba(255, 255, 255, .12); color: #fff; }
+.sidebar .user-card { background: rgba(255, 255, 255, .1); border-radius: var(--r); padding: .55rem .6rem; }
+.sidebar .user-card .role { color: rgba(255, 255, 255, .65); }
+.sidebar .avatar { background: rgba(255, 255, 255, .2); color: #fff; }
+
+/* Glassy top bars over the colourful background */
+.topbar, .public-top { background: color-mix(in srgb, var(--bg) 55%, transparent); }
+
+/* Gradient main buttons */
+.button:not(.button-secondary):not(.button-ghost):not(.button-glass) { background: var(--grad-primary); border-color: transparent; color: #fff; box-shadow: 0 6px 16px -6px rgba(99, 102, 241, .6), inset 0 1px 0 rgba(255, 255, 255, .2); }
+.button:not(.button-secondary):not(.button-ghost):not(.button-glass):hover { filter: brightness(1.07); }
+.banner .actions > .button:not(.button-glass):not(.button-secondary):not(.button-ghost) { background: #fff; color: #3730a3; box-shadow: 0 2px 6px rgba(0, 0, 0, .12); }
+
+/* Filled colour tiles: dashboard stat cards and seller summary cards */
+.stat, .summary .tile { color: #fff; border: 0; position: relative; overflow: hidden; }
+.stat::after, .summary .tile::after {   /* soft light shape for depth */
+  content: ""; position: absolute; right: -30px; top: -30px; width: 120px; height: 120px; border-radius: 50%;
+  background: rgba(255, 255, 255, .14); pointer-events: none;
+}
+.stat .name, .stat .foot, .summary .tile .name { color: rgba(255, 255, 255, .88); }
+.stat .chip-icon, .summary .tile .chip-icon { background: rgba(255, 255, 255, .2) !important; color: #fff !important; }
+.stat .share { background: rgba(255, 255, 255, .25); color: #fff !important; }
+.stat-registered, .tile-sky { background: var(--grad-sky); box-shadow: 0 12px 24px -12px rgba(37, 99, 235, .6); }
+.stat-assigned, .tile-indigo { background: var(--grad-indigo); box-shadow: 0 12px 24px -12px rgba(79, 70, 229, .6); }
+.stat-out-for-delivery, .tile-amber { background: var(--grad-amber); box-shadow: 0 12px 24px -12px rgba(249, 115, 22, .6); }
+.stat-delivered, .tile-emerald { background: var(--grad-emerald); box-shadow: 0 12px 24px -12px rgba(5, 150, 105, .6); }
+.stat-failed, .tile-rose { background: var(--grad-rose); box-shadow: 0 12px 24px -12px rgba(225, 29, 72, .6); }
+.tile-violet { background: var(--grad-violet); box-shadow: 0 12px 24px -12px rgba(124, 58, 237, .6); }
+
+/* Card titles get a coloured icon chip */
+.card-title > .icon { width: 30px; height: 30px; padding: 7px; border-radius: 9px; background: var(--primary-soft); color: var(--primary); }
+
+/* Tinted table head */
+.data-table th { background: color-mix(in srgb, var(--primary-soft) 70%, var(--surface)); color: var(--text-2); }
+
+/* Rider delivery cards: coloured edge by status */
+.job { border-left: 4px solid var(--border-strong); }
+.job-assigned { border-left-color: #6366f1; }
+.job-out-for-delivery { border-left-color: #f59e0b; }
+.job-delivered { border-left-color: #10b981; }
+.job-failed { border-left-color: #f43f5e; }
+
+/* Home: colourful feature and step cards */
+.feature { position: relative; overflow: hidden; }
+.feature::before, .steps li.card::after { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 4px; }
+.feature-sky::before { background: var(--grad-sky); }
+.feature-amber::before { background: var(--grad-amber); }
+.feature-emerald::before { background: var(--grad-emerald); }
+.feature .chip-icon { color: #fff; }
+.feature-sky .chip-icon { background: var(--grad-sky); }
+.feature-amber .chip-icon { background: var(--grad-amber); }
+.feature-emerald .chip-icon { background: var(--grad-emerald); }
+.steps li.card { overflow: hidden; }
+.steps li:nth-child(1)::after { background: var(--grad-sky); }
+.steps li:nth-child(2)::after { background: var(--grad-indigo); }
+.steps li:nth-child(3)::after { background: var(--grad-amber); }
+.steps li:nth-child(4)::after { background: var(--grad-emerald); }
+.hero h1 { background: linear-gradient(135deg, var(--text) 30%, #6366f1 75%, #a855f7 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+/* Log in / register: gradient strip on top of the card */
+.auth-card { position: relative; overflow: hidden; }
+.auth-card::before { content: ""; position: absolute; left: 0; right: 0; top: 0; height: 5px; background: linear-gradient(90deg, #38bdf8, #6366f1, #a855f7, #ec4899); }
+.auth-card .chip-icon { background: var(--grad-primary); color: #fff; box-shadow: 0 8px 18px -8px rgba(99, 102, 241, .7); }
 
 @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }

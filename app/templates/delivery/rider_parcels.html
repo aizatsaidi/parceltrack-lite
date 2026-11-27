@@ -26,7 +26,7 @@
   <ul class="job-list">
     {% for p in parcels %}
       <li>
-        <a class="card job" href="{{ url_for('delivery.rider_parcel_detail', parcel_id=p.id) }}">
+        <a class="card job job-{{ p.status|lower|replace(' ', '-') }}" href="{{ url_for('delivery.rider_parcel_detail', parcel_id=p.id) }}">
           <span class="chip-icon">{{ icon("package") }}</span>
           <span class="info">
             <span class="mono fw-semibold">{{ p.tracking_no }}</span>

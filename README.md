@@ -9,91 +9,114 @@ Stack: Python Flask + MySQL (SQLite for local demos).
 | 2 · Parcel Registration and Public Tracking | Syabil | `app/parcels/` |
 | 3 · Delivery Update and Admin Dashboard | Aizat | `app/delivery/` |
 
-Shared by the group: `app/__init__.py`, `app/models.py`, `app/security.py`, `app/templates/base.html`.
+Shared by the group: `app/__init__.py`, `app/models.py`, `app/security.py`, `app/seed.py`,
+`app/templates/base.html`, `app/templates/_macros.html`, `app/static/`.
 
 ---
 
-## How to run it on your laptop (first time)
+## Get the project (first time)
 
-You need **Python 3.10 or newer** installed. Check by typing `python --version` in a terminal.
-If it isn't installed, get it from python.org. On Windows, tick **"Add Python to PATH"** during install.
-
-1. Unzip the project folder. Open a terminal **inside** the `parceltrack-lite` folder.
-   (Windows: open the folder, click the address bar, type `cmd`, press Enter.)
-2. Install the packages (only once):
+1. Install **Python 3.10 or newer** from python.org. On Windows, tick **"Add Python to PATH"** during install.
+   Check it works by typing `python --version` in a terminal.
+2. Install **GitHub Desktop**, sign in, then **File → Clone repository → aizatsaidi/parceltrack-lite**.
+   Save it outside OneDrive, for example `C:\parceltrack-lite`.
+3. Open that folder, click the address bar, type `cmd` and press Enter. Then install the packages (only once):
    ```
    pip install -r requirements.txt
    ```
-3. Start the website:
-   ```
-   python run.py
-   ```
-4. Open **http://127.0.0.1:5000** in your browser.
 
-To stop it, press `Ctrl + C` in the terminal. To start again, repeat step 3 only.
+## Run it
 
-To reset all demo data, stop the website, delete the file `parceltrack.db`, and start it again.
+```
+python run.py
+```
+
+Open **http://127.0.0.1:5000** in your browser. To stop it, press `Ctrl + C` in the terminal.
+
+- **After pulling new code,** stop the website and run `python run.py` again, then press **Ctrl + F5** in the browser.
+- **To reset the demo data,** stop the website, delete `parceltrack.db`, and start it again.
 
 ## Demo logins (fake test accounts only)
 
-| Role | Email | Password |
-|---|---|---|
-| Admin | admin@rapidexpress.test | AdminDemo#2026 |
-| Seller | seller@shop.test | SellerDemo#2026 |
-| Rider | ali@rapidexpress.test | RiderAliDemo#2026 |
-| Rider | siti@rapidexpress.test | RiderSitiDemo#2026 |
+| Role | Email | Password | Lands on |
+|---|---|---|---|
+| Admin | admin@rapidexpress.test | AdminDemo#2026 | Dashboard |
+| Seller | seller@shop.test | SellerDemo#2026 | My parcels |
+| Rider | ali@rapidexpress.test | RiderAliDemo#2026 | My deliveries |
+| Rider | siti@rapidexpress.test | RiderSitiDemo#2026 | My deliveries |
 
-Demo tracking numbers: `RX-DEMO7KQ2M9`, `RX-DEMOP4T8WZ` (registered), `RX-DEMO9HN3QX`, `RX-DEMOB6R2VK` (assigned), `RX-DEMOT5W8LC` (out for delivery), `RX-DEMOH2Y6RF` (delivered)
+| Tracking number | Status | Rider |
+|---|---|---|
+| `RX-DEMO7KQ2M9`, `RX-DEMOP4T8WZ` | Registered | none yet |
+| `RX-DEMO9HN3QX` | Assigned | Ali |
+| `RX-DEMOB6R2VK` | Assigned | Siti |
+| `RX-DEMOT5W8LC` | Out for Delivery | Ali |
+| `RX-DEMOH2Y6RF` | Delivered | Siti |
 
 ---
 
-## Progress demo script (about 1–2 minutes each)
+## Tasks: who does what
 
-**Aqil (Module 1): Login**
-1. Go to *Log in*. Type the admin email with a wrong password. You see only "Invalid email or password". It doesn't say which part was wrong.
-2. Log in properly as seller, then log out. Log in as a rider and show they land on a different page.
-3. Say: passwords are stored as hashes, and 5 wrong tries lock the account for 15 minutes.
+The full task list is on GitHub: **[Issues](https://github.com/aizatsaidi/parceltrack-lite/issues)**
+(click **Sort → Oldest** so Task 1 is on top). Each task says what to build, which files to change,
+the security rules, and **"Finish these first"** if it has to wait for another task.
+A task closes by itself when its work is merged with `Closes #<number>` in the pull request or commit.
 
-**Syabil (Module 2): Register parcel and tracking**
-1. Log in as the seller. Click *+ Register parcel*, fill in fake details, and submit. A random tracking number appears.
-2. Log out. Open *Track parcel* and enter that number. Only the status and time show, with no name, phone or address.
-3. Say: the tracking number comes from a secure random generator, so it can't be guessed.
+| Who | Tasks | Group tasks they lead |
+|---|---|---|
+| **Aizat** | 6, 9, 12, 14, 19 | 1 (design, done), 2 (automatic tests), 16 (delete old data, P3) |
+| **Aqil** | 4, 7, 10, 13, 17 | 20 (security test case document) |
+| **Syabil** | 5, 8, 11, 18 | 3 (MySQL), 15 (deploy online with HTTPS) |
 
-**Aizat (Module 3): Assign parcels**
-1. Log in as admin. Show the summary counts, pick a rider for a parcel, and click *Assign*. The counts change.
-2. Log out and log in as Rider Ali. *My deliveries* shows only Ali's parcels. Click one: the address in the browser ends in a number, e.g. `/rider/parcels/3`.
-3. Change that number to `4` (Siti's parcel) and press Enter. You get **403 Forbidden**.
-4. Say: access is checked on the server for every request, not just hidden in the menu.
+Do your tasks in number order. Tasks next to each other belong to different people, so you can all work
+at the same time.
 
-## Running the security tests
+## How to work on a task
+
+1. **Get the latest code:** in GitHub Desktop, make sure **Current branch** is `main`, then click
+   **Fetch origin** and **Pull origin**.
+2. **Do the task** (yourself or with an AI tool opened on your `parceltrack-lite` folder). Change only your
+   own module folder. Tell the group before changing shared files.
+3. **Check it:** run the website and test it in the browser, then run the security tests (below).
+   Make sure you understand every line; the lecturer asks you to explain your own code.
+4. **Commit from your own account:** your changed files appear on the left (**Changes**) in GitHub Desktop.
+   Write a **Summary** starting with the task, for example `Task 6: rider status update`, and add
+   `Closes #6` in the **Description**. Click **Commit to main**, then **Push origin**.
+5. Tell the group so they can **Pull origin**.
+
+## Security tests
 
 ```
 pip install pytest
 python -m pytest tests -v
 ```
-Each test checks one security requirement from the slides (SR1.x, SR2.x, SR3.x).
 
-## Working on your module
+Each test checks one security requirement from the slides (SR1.x, SR2.x, SR3.x). All tests must pass
+before you push. New tests for each module go in `tests/test_m1.py`, `tests/test_m2.py` and `tests/test_m3.py`.
 
-Each member has a task brief in `docs/tasks/` with their to-do items, the rubric's security controls
-and suggested tests. You are marked on explaining **your own code** in the live demo.
+---
 
-1. **Get the code (first time):** `git clone https://github.com/aizatsaidi/parceltrack-lite.git`
-   (or GitHub Desktop → Clone). Before each work session: `git pull`.
-2. **Open your task brief:** `docs/tasks/M1-aqil.md`, `docs/tasks/M2-syabil.md` or `docs/tasks/M3-aizat.md`.
-3. **Do one item at a time.** Make sure you understand every line, test it in the browser, and run
-   `python -m pytest tests -q`.
-4. **Commit from your own account** with a message starting with your module code:
-   `git add -A` → `git commit -m "M3: add rider status update"` → `git pull` → `git push`.
-   Then tick the item in the checklist below.
-5. **Only edit your own module folder.** Tell the group before changing shared files
-   (`models.py`, `__init__.py`, `security.py`, `seed.py`, `base.html`, `requirements.txt`).
+## Week 14 live demo
+
+30 minutes for the group, about **10 minutes per member**, on the **live cloud website** (rubric 1b:
+a local-only demo loses 5 marks). For your own module:
+
+1. **Show it working:** the normal flow from start to finish.
+2. **Show attacks failing** (rubric 4 asks for failed attack attempts), for example:
+   - **Aqil:** SQL injection in the email box, a short password, 5 wrong passwords then lockout, a Seller opening an admin page
+   - **Syabil:** SQL injection in search, a script in the address, another seller's parcel ID in the URL, a guessed tracking number, too many lookups
+   - **Aizat:** uploading `shell.php` or `shell.php.jpg`, an oversized image, a made-up status value, a rider opening another rider's parcel (try `/rider/parcels/4` as Ali: **403**)
+3. **Show the evidence:** the log or status history entry the action created.
+4. **Explain your own code** and answer questions: where the check happens, and which threat or policy it stops.
+
+---
 
 ## UI guide (use these for every new page)
 
-All styles live in `app/static/css/app.css`, with light and dark mode built in. Don't add `<style>` blocks,
-new colours, or external fonts or CSS: the fonts (Inter and IBM Plex Mono) and icons are bundled, so the
-site works offline. Logged-in users get the sidebar layout automatically; visitors get the top-bar layout.
+All styles live in `app/static/css/app.css`, with light and dark mode built in (light by default). Don't add
+`<style>` blocks, new colours, or external fonts or CSS: the fonts (Inter and IBM Plex Mono) and icons are
+bundled, so the site works offline. Logged-in users get the gradient sidebar layout automatically; visitors
+get the top-bar layout.
 
 **Page setup**
 
@@ -119,65 +142,39 @@ site works offline. Logged-in users get the sidebar layout automatically; visito
 | `{{ route(events) }}` | Status timeline with progress bar. `events` = list of `(status, datetime)`, oldest first |
 | `{{ avatar(name) }}` | Round initials for a person |
 
-**Classes**
+**Status colours** (used by badges, tiles, charts and the timeline): Registered = sky blue,
+Assigned = indigo, Out for Delivery = amber, Delivered = emerald, Failed = rose.
+
+**Layout and content**
 
 | Class | What it is |
 |---|---|
-| `card`, `card-pad`, `card-head`, `card-body`, `card-title` | Content boxes. `card-head` holds a title or search plus a `count` pill |
+| `card`, `card-pad`, `card-head`, `card-body`, `card-title` | Content boxes. `card-head` holds a title or search plus a `count` pill. An `icon()` first in `card-title` gets a coloured chip |
 | `page-head` | Page title with a one-line description |
+| `banner` (+ `banner-teal`) | Gradient welcome or summary strip. Inside: `actions` (buttons), `banner-icon`, `big` (large number), `meter > span` (progress) |
+| `dash-grid` | Three-column row of cards (two on tablets, one on phones) |
+| `facts` + `fact` (`k` label, `v` value) | Label and value list with an icon per row |
+| `table-wrap` + `data-table` | Tables inside a `card`. `td class="empty"` with a `chip-icon` for the "nothing here" row. `person` = avatar and name |
+| `notice notice-success / -danger / -warning / -info` | Messages (put an `icon()` first). Flash messages already use these |
+
+**Colour tiles and data**
+
+| Class | What it is |
+|---|---|
+| `stats` + `card stat stat-<status>` | Gradient status count cards on the dashboard, with `share > span` bar and `foot` text |
+| `summary` + `card tile tile-<colour>` | Gradient summary tiles: `tile-sky`, `tile-indigo`, `tile-amber`, `tile-emerald`, `tile-rose`, `tile-violet` |
+| `donut` + `legend` | Status donut chart (see `delivery/assign.html` for how it is built from real counts) |
+| `workload`, `activity` | Rider workload bars and the recent activity feed on the dashboard |
+| `job-list` + `card job job-<status>` | Big tappable rider rows with a coloured left edge by status |
+| `chip-icon` (+ `chip-registered / -assigned / -out / -delivered / -failed`) | Rounded icon square in a status colour |
+
+**Forms and buttons**
+
+| Class | What it is |
+|---|---|
 | `field`, `input`, `select`, `textarea`, `hint`, `field-icon` | Form parts. Wrap each label and input in `<div class="field">`; `field-icon` puts an icon inside an input |
 | `inline-form` | Field and button on one line (search, assign) |
-| `button` | Main action. `button-secondary`, `button-ghost`, `button-small`, `button-lg`, `button-block`, `button-icon` |
-| `table-wrap` + `data-table` | Tables inside a `card`. `td class="empty"` with a `chip-icon` for the "nothing here" row. `person` = avatar and name |
-| `stats` + `card stat stat-<status>` | Status count cards on the dashboard |
-| `job-list` + `card job` | Big tappable rows for riders on phones |
-| `facts` + `fact` (`k` label, `v` value) | Label and value list with an icon per row |
-| `notice notice-success / -danger / -warning / -info` | Messages (put an `icon()` first). Flash messages already use these |
-| `chip-icon`, `back-link`, `muted`, `small`, `mono` | Small helpers |
+| `button` | Main action (indigo-violet gradient). `button-secondary`, `button-ghost`, `button-small`, `button-lg`, `button-block`, `button-icon` |
+| `back-link`, `muted`, `small`, `mono` | Small helpers |
 
 Flash categories: `success`, `danger`, `warning`, `info`. Every POST form still needs the CSRF hidden field.
-
-## Checklist to Week 14 (matches the lecturer's rubric)
-
-Tick items off as they are done. Each member writes the code for their own module (rubric rule 5).
-Rubric marks per member: 1a functions (5), 1b deployment and integration (10), 2a security controls (6),
-2b policies and error handling (4), 3 security testing (10), 4 live demo and Q&A (5) = 40 raw marks → 30%.
-
-### Module 1: Login and User Management (Aqil) · policies P1, P2, P5
-
-- [x] Login and logout for Seller, Rider and Admin
-- [x] Seller self-registration (password at least 10 characters)
-- [x] Lockout after 5 failed logins; generic "Invalid email or password"; logins logged without passwords
-- [ ] **Switch password hashing to bcrypt or Argon2** (rubric names these two; current code uses Werkzeug scrypt)
-- [ ] Admin creates Rider accounts
-- [ ] Admin disables Rider accounts (P1: disabled the day a rider leaves)
-- [ ] Change password page
-- [ ] Tests from the rubric: SQL injection in username, weak or short password, repeated wrong passwords, script in name field, opening an admin page as Seller
-
-### Module 2: Parcel Registration and Public Tracking (Syabil) · policies P1, P3, P4
-
-- [x] Seller registers a parcel with server-side validation (phone, address, weight)
-- [x] Cryptographically random, unique tracking number
-- [x] Seller views and searches own parcels only
-- [x] Public tracking shows status, date and time only (no name, phone or address)
-- [ ] **Rate limit on tracking lookups** (stops guessing tracking numbers)
-- [ ] Tests from the rubric: SQL injection in search, XSS in address, invalid phone or negative weight, changing a parcel ID in the URL, guessed or sequential tracking number, many rapid lookups
-
-### Module 3: Delivery Update and Admin Dashboard (Aizat) · policies P1, P3, P5
-
-- [x] Admin assigns parcels to active riders (status → Assigned, logged with user and time)
-- [x] Rider views assigned parcels only; any other parcel ID returns 403
-- [x] Admin dashboard of parcel counts by status (Admin only, no personal data)
-- [ ] **Rider status update** in order only: Assigned → Out for Delivery → Delivered or Failed; reject any other status value
-- [ ] **Proof-of-delivery photo upload**: one JPG or PNG; check type, size and real image content; rename to a random name; store outside the web folder
-- [ ] Every status change logged in `status_history` with user and time, without addresses (P5)
-- [ ] Tests from the rubric: uploading `.php` or `shell.php.jpg`, oversized image, invalid status value, updating a parcel not assigned to the rider, opening the dashboard without Admin login
-
-### Whole group
-
-- [ ] Integrate all modules with the real login and move the database to MySQL
-- [ ] Deploy on a cloud server with HTTPS (local only loses 5 marks in criterion 1b) and run the Week 14 demo from it
-- [ ] Delete or anonymise recipient data 12 months after delivery (P3)
-- [ ] Security scans with OWASP ZAP and request tampering with Burp Suite
-- [ ] **Security test case document**, organised by module: input, expected result, actual result, owner's name. More than 5 input types per module for full marks in criterion 3
-- [ ] Rehearse the live demo: about 10 minutes each, showing failed attack attempts and explaining your own code
