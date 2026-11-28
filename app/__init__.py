@@ -11,7 +11,7 @@ the security features every module relies on:
 import os
 import logging
 
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, session
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect, CSRFError
@@ -57,13 +57,26 @@ def create_app():
     login_manager.login_view = "auth.login"
     login_manager.login_message = "Please log in to continue."
 
-    from .models import User
+    from .models import LoginEvent, User
 
     @login_manager.user_loader
     def load_user(user_id):
         user = db.session.get(User, int(user_id))
         # A disabled account is logged out straight away (policy P1)
         if user is None or not user.is_active_account:
+            return None
+
+        # Signed cookies can be replayed after logout unless the server also
+        # checks the login event that issued this session.
+        login_event_id = session.get("login_event_id")
+        if not isinstance(login_event_id, int):
+            return None
+        revoked_event = LoginEvent.query.filter(
+            LoginEvent.user_id == user.id,
+            LoginEvent.event.in_(("logout", "account_disabled")),
+            LoginEvent.id > login_event_id,
+        ).first()
+        if revoked_event:
             return None
         return user
 

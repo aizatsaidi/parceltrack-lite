@@ -2,6 +2,7 @@
 import os
 import sys
 import tempfile
+from datetime import timedelta
 
 import pytest
 
@@ -322,3 +323,75 @@ def test_wrong_password_change_attempts_trigger_account_lockout(auth_client):
         user = User.query.filter_by(email="seller@shop.test").first()
         assert user.failed_logins == 5
         assert user.locked_until is not None
+
+
+def test_sql_injection_email_gets_generic_login_error(auth_client):
+    client, _ = auth_client
+    response = client.post("/login", data={
+        "email": "' OR '1'='1' -- ", "password": "irrelevant-password",
+    })
+    assert response.status_code == 401
+    assert b"Invalid email or password" in response.data
+
+
+def test_short_registration_password_is_rejected(auth_client):
+    client, _ = auth_client
+    response = client.post("/register", data={
+        "name": "Short Password Seller", "email": "short@shop.test",
+        "password": "short", "confirm": "short",
+    })
+    assert response.status_code == 400
+    assert b"at least 10 characters" in response.data
+
+
+def test_five_wrong_login_passwords_lock_account_for_15_minutes(auth_client):
+    client, app = auth_client
+    for _ in range(5):
+        response = client.post("/login", data={
+            "email": "seller@shop.test", "password": "incorrect-password",
+        })
+        assert response.status_code == 401
+
+    from app.models import User, utcnow
+
+    with app.app_context():
+        user = User.query.filter_by(email="seller@shop.test").first()
+        remaining = user.locked_until - utcnow()
+        assert timedelta(minutes=14) < remaining <= timedelta(minutes=15)
+
+    response = client.post("/login", data={
+        "email": "seller@shop.test", "password": "SellerDemo#2026",
+    })
+    assert response.status_code == 401
+    assert b"Invalid email or password" in response.data
+
+
+def test_rider_name_script_is_escaped_in_admin_list(auth_client):
+    client, _ = auth_client
+    client.post("/login", data={"email": "admin@rapidexpress.test", "password": "AdminDemo#2026"})
+    response = client.post("/admin/riders", data={
+        "name": "<script>alert(1)</script>", "email": "xss-rider@rapidexpress.test",
+        "temporary_password": "TemporaryRider#2026",
+    })
+    assert response.status_code == 302
+
+    response = client.get("/admin/riders")
+    assert b"<script>alert(1)</script>" not in response.data
+    assert b"&lt;script&gt;alert(1)&lt;/script&gt;" in response.data
+
+
+def test_logout_invalidates_a_copied_session_cookie(auth_client):
+    client, app = auth_client
+    client.post("/login", data={"email": "seller@shop.test", "password": "SellerDemo#2026"})
+    cookie_name = app.config.get("SESSION_COOKIE_NAME", "session")
+    old_cookie = client.get_cookie(cookie_name)
+    assert old_cookie is not None
+
+    response = client.post("/logout")
+    assert response.status_code == 302
+
+    replay_client = app.test_client()
+    replay_client.set_cookie(cookie_name, old_cookie.value)
+    response = replay_client.get("/seller/parcels")
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
