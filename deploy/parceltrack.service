@@ -1,0 +1,18 @@
+[Unit]
+Description=ParcelTrack Lite Flask application
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=parceltrack
+Group=parceltrack
+WorkingDirectory=/home/parceltrack/parceltrack-lite
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/parceltrack/parceltrack-lite/venv/bin/gunicorn --workers 1 --bind 127.0.0.1:8000 --access-logfile - --error-logfile - deploy.wsgi:application
+Restart=on-failure
+RestartSec=5
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target
