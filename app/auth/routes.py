@@ -14,7 +14,7 @@ Security controls already in place:
   SR1.6  Disabled accounts cannot log in
   SR1.7  Logins and failed logins are logged, never the password
 
-Next step: Add a change password page.
+Other Module 1 improvements are tracked in docs/tasks/M1-aqil.md.
 """
 from datetime import timedelta
 
@@ -116,6 +116,57 @@ def register():
         return redirect(url_for("auth.login"))
 
     return render_template("auth/register.html")
+
+
+@auth_bp.route("/account/password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    """Let a signed-in user change their password after proving the current one."""
+    user = current_user
+    if request.method == "POST":
+        if user.locked_until and user.locked_until > utcnow():
+            log_event(user, "login_while_locked")
+            db.session.commit()
+            flash(GENERIC_LOGIN_ERROR, "danger")
+            return render_template("auth/change_password.html"), 401
+
+        current_password = request.form.get("current_password", "")
+        if not verify_password(user.password_hash, current_password):
+            user.failed_logins += 1
+            if user.failed_logins >= MAX_FAILED_LOGINS:
+                user.locked_until = utcnow() + timedelta(minutes=LOCK_MINUTES)
+                log_event(user, "account_locked")
+            else:
+                log_event(user, "failed_password_change")
+            db.session.commit()
+            flash("Current password is incorrect.", "danger")
+            status = 401 if user.locked_until and user.locked_until > utcnow() else 400
+            return render_template("auth/change_password.html"), status
+
+        # A verified current password resets failed attempts as a successful login does.
+        user.failed_logins = 0
+        user.locked_until = None
+        new_password = request.form.get("new_password", "")
+        confirm_password = request.form.get("confirm_password", "")
+        if len(new_password) < MIN_PASSWORD_LENGTH:
+            db.session.commit()
+            flash(f"New password must be at least {MIN_PASSWORD_LENGTH} characters.", "danger")
+            return render_template("auth/change_password.html"), 400
+        if new_password != confirm_password:
+            db.session.commit()
+            flash("New passwords do not match.", "danger")
+            return render_template("auth/change_password.html"), 400
+
+        user.password_hash = hash_password(new_password)
+        log_event(user, "password_changed")
+        db.session.commit()
+        session.clear()
+        login_user(user)
+        session.permanent = True
+        flash("Your password has been changed.", "success")
+        return redirect(url_for("home"))
+
+    return render_template("auth/change_password.html")
 
 
 @auth_bp.route("/admin/riders", methods=["GET", "POST"])

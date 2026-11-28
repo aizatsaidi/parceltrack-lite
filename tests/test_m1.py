@@ -226,3 +226,99 @@ def test_admin_rider_creation_rejects_short_password_and_duplicate_email(auth_cl
     })
     assert duplicate.status_code == 400
     assert b"This email cannot be used" in duplicate.data
+
+
+def test_change_password_validates_current_short_and_confirm_passwords(auth_client):
+    client, app = auth_client
+    client.post("/login", data={"email": "seller@shop.test", "password": "SellerDemo#2026"})
+
+    page = client.get("/account/password")
+    assert page.status_code == 200
+    assert b'name="csrf_token"' in page.data
+
+    wrong_current = client.post("/account/password", data={
+        "current_password": "wrong-current-password",
+        "new_password": "NewSellerPassword#2026",
+        "confirm_password": "NewSellerPassword#2026",
+    })
+    assert wrong_current.status_code == 400
+    assert b"Current password is incorrect" in wrong_current.data
+
+    short_password = client.post("/account/password", data={
+        "current_password": "SellerDemo#2026",
+        "new_password": "short",
+        "confirm_password": "short",
+    })
+    assert short_password.status_code == 400
+    assert b"at least 10 characters" in short_password.data
+
+    mismatch = client.post("/account/password", data={
+        "current_password": "SellerDemo#2026",
+        "new_password": "NewSellerPassword#2026",
+        "confirm_password": "DifferentPassword#2026",
+    })
+    assert mismatch.status_code == 400
+    assert b"New passwords do not match" in mismatch.data
+
+    new_password = "NewSellerPassword#2026"
+    changed = client.post("/account/password", data={
+        "current_password": "SellerDemo#2026",
+        "new_password": new_password,
+        "confirm_password": new_password,
+    })
+    assert changed.status_code == 302
+    assert client.get("/seller/parcels").status_code == 200
+
+    from app.models import User
+
+    with app.app_context():
+        user = User.query.filter_by(email="seller@shop.test").first()
+        assert user.password_hash.startswith("$argon2id$")
+        assert new_password not in user.password_hash
+
+    old_password_client = app.test_client()
+    response = old_password_client.post("/login", data={
+        "email": "seller@shop.test", "password": "SellerDemo#2026",
+    })
+    assert response.status_code == 401
+
+    new_password_client = app.test_client()
+    response = new_password_client.post("/login", data={
+        "email": "seller@shop.test", "password": new_password,
+    })
+    assert response.status_code == 302
+
+
+def test_password_change_requires_login(auth_client):
+    client, _ = auth_client
+    response = client.get("/account/password")
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
+
+
+def test_wrong_password_change_attempts_trigger_account_lockout(auth_client):
+    client, app = auth_client
+    client.post("/login", data={"email": "seller@shop.test", "password": "SellerDemo#2026"})
+
+    for attempt in range(5):
+        response = client.post("/account/password", data={
+            "current_password": "incorrect-current-password",
+            "new_password": "NewSellerPassword#2026",
+            "confirm_password": "NewSellerPassword#2026",
+        })
+        assert response.status_code == (401 if attempt == 4 else 400)
+
+    response = client.post("/account/password", data={
+        "current_password": "SellerDemo#2026",
+        "new_password": "NewSellerPassword#2026",
+        "confirm_password": "NewSellerPassword#2026",
+    })
+    assert response.status_code == 401
+    assert b"Invalid email or password" in response.data
+
+    from app.models import User
+
+    with app.app_context():
+        user = User.query.filter_by(email="seller@shop.test").first()
+        assert user.failed_logins == 5
+        assert user.locked_until is not None

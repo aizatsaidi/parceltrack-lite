@@ -61,6 +61,7 @@
       {% elif current_user.role == 'rider' %}
         <a class="nav-item" href="{{ url_for('delivery.rider_parcels') }}" {% if here.startswith('delivery.rider') %}aria-current="page"{% endif %}>{{ icon("truck") }} My deliveries</a>
       {% endif %}
+      <a class="nav-item" href="{{ url_for('auth.change_password') }}" {% if here == 'auth.change_password' %}aria-current="page"{% endif %}>{{ icon("lock") }} Change password</a>
       <a class="nav-item" href="{{ url_for('parcels.track') }}" {% if here == 'parcels.track' %}aria-current="page"{% endif %}>{{ icon("search") }} Track a parcel</a>
     </nav>
     <div class="sidebar-foot">
