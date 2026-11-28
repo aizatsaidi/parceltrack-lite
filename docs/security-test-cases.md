@@ -1,6 +1,6 @@
 # Module 1 security test cases
 
-Verified with `python -m pytest tests -q`: **48 passed**.
+Verified with `python -m pytest tests -q`: **150 passed** in the latest full-suite run.
 
 | Input | Expected result | Actual result |
 |---|---|---|
@@ -12,9 +12,24 @@ Verified with `python -m pytest tests -q`: **48 passed**.
 | A disabled rider submits the correct password at login | Refuse login with the generic error. | Pass: HTTP 401 with “Invalid email or password.” (`test_disabled_rider_cannot_log_in_and_actions_are_audited`). |
 | Replay a copied session cookie after logout | Treat the request as logged out and redirect to login. | Pass: the replayed cookie is denied access and redirected to login (`test_logout_invalidates_a_copied_session_cookie`). |
 
+# Module 2 security test cases (Parcel Registration and Public Tracking)
+
+**Owner:** Syabil · Verified with `python -m pytest tests/test_m2.py -q`: **24 passed**.
+All records used in these tests are fake demo data; the tests use a temporary SQLite database.
+
+| ID | Input or attack | Expected result | Actual result | Owner |
+|---|---|---|---|---|
+| M2-01 | Search own parcels with `' OR '1'='1` while another seller has a private parcel | Search completes without a database error and never returns another seller's parcel | Pass: HTTP 200, generic “No parcels found.” result, and the other seller's recipient is absent (`test_sql_injection_in_seller_parcel_search_stays_scoped_to_owner`) | Syabil |
+| M2-02 | Register a parcel with `<script>alert(1)</script>` as the delivery address | Accept valid text but escape it when rendered; do not execute the script | Pass: seller detail contains escaped markup and no raw script tag (`test_script_in_address_is_escaped_on_seller_parcel_detail`) | Syabil |
+| M2-03 | Submit phone `abc` or weight `-2` during registration | Reject invalid values with field-specific messages; do not create the parcel | Pass: HTTP 400 with the expected phone or weight error (`test_registration_validation_shows_field_error_and_keeps_input`, parameter cases `recipient_phone/abc` and `weight_kg/-2`) | Syabil |
+| M2-04 | Seller changes the parcel detail URL to another seller's parcel ID or an unknown ID | Deny access on the server with HTTP 403 | Pass: both other-seller and unknown IDs return HTTP 403 (`test_other_seller_and_unknown_parcel_ids_both_return_403`) | Syabil |
+| M2-05 | Submit a made-up sequential tracking number | Show a generic “No parcel has that tracking number” result; reveal no recipient details | Pass: HTTP 200 with the generic not-found message and no demo recipient, phone, or address (`test_unknown_or_sequential_tracking_number_returns_generic_not_found`) | Syabil |
+| M2-06 | Submit 25 tracking lookups from the same client within one minute | Allow the first 20; rate-limit the remaining requests with HTTP 429 and a generic message | Pass: first 20 return HTTP 200; lookups 21–25 return HTTP 429 (`test_25_tracking_lookups_in_one_minute_get_429_after_limit`) | Syabil |
+| M2-07 | Publicly track an existing parcel by its tracking number | Show parcel status only; never show recipient name, phone, or address | Pass: HTTP 200 shows “Registered” while all three personal-data values are absent (`test_public_tracking_never_shows_recipient_personal_data`) | Syabil |
+
 # Module 3 security test cases (Delivery Update and Admin Dashboard)
 
-**Owner:** Aizat · Verified with `python -m pytest tests -q`: **124 passed** (all modules).
+**Owner:** Aizat · Verified with `python -m pytest tests -q`: **150 passed** in the latest full-suite run.
 Module 3 and policy P3 have **100 automated tests** in `tests/test_m3.py`, `tests/test_p3.py` and the
 `SR3` tests in `tests/test_security.py`. All data used is fake demo data from `app/seed.py`.
 

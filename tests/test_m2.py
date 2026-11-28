@@ -58,18 +58,17 @@ def test_only_tracking_lookups_count_toward_limit(client):
     assert c.get("/").status_code == 200
 
 
-def test_21st_tracking_lookup_from_same_ip_gets_generic_429(client):
+def test_25_tracking_lookups_in_one_minute_get_429_after_limit(client):
     c, app = client
     app.config["RATELIMIT_TEST_ENABLED"] = True
 
-    for _ in range(20):
+    for attempt in range(25):
         response = c.get("/track", query_string={"tracking_no": "RX-UNKNOWN123"})
-        assert response.status_code == 200
-
-    response = c.get("/track", query_string={"tracking_no": "RX-UNKNOWN123"})
-
-    assert response.status_code == 429
-    assert b"Too many requests, please try again later." in response.data
+        if attempt < 20:
+            assert response.status_code == 200
+        else:
+            assert response.status_code == 429
+            assert b"Too many requests, please try again later." in response.data
 
 
 def login(c, email, password):
@@ -184,8 +183,12 @@ def test_rider_and_admin_cannot_open_seller_parcel_detail(client, email, passwor
 def test_registration_validation_shows_field_error_and_keeps_input(
     client, field, value, error, error_id
 ):
-    c, _ = client
+    c, app = client
     login(c, "seller@shop.test", "SellerDemo#2026")
+    from app.models import Parcel
+
+    with app.app_context():
+        parcel_count_before = Parcel.query.count()
     form = {
         "recipient_name": "Test Recipient",
         "recipient_phone": "012-3456789",
@@ -202,6 +205,8 @@ def test_registration_validation_shows_field_error_and_keeps_input(
     assert f'id="{error_id}" role="alert"'.encode() in body
     assert b"Traceback" not in body
     assert b"ValueError" not in body
+    with app.app_context():
+        assert Parcel.query.count() == parcel_count_before
     # Valid values and the rejected value are re-rendered safely in the form.
     for name in ("recipient_name", "recipient_phone", "recipient_address", "weight_kg"):
         if name != field and form[name].strip():
@@ -229,3 +234,80 @@ def test_registration_trims_values_before_saving(client):
         assert parcel.recipient_phone == "012-3456789"
         assert parcel.recipient_address == "12 Trim Road"
         assert parcel.weight_kg == 1.25
+
+
+def test_sql_injection_in_seller_parcel_search_stays_scoped_to_owner(client):
+    c, app = client
+    from app import db
+    from app.auth.passwords import hash_password
+    from app.models import Parcel, User
+
+    with app.app_context():
+        other_seller = User(
+            name="Second Test Seller", email="injection-seller@shop.test",
+            role="seller", password_hash=hash_password("TestSeller#2026"),
+        )
+        db.session.add(other_seller)
+        db.session.flush()
+        db.session.add(Parcel(
+            tracking_no="RX-PRIVATE1234", seller_id=other_seller.id,
+            recipient_name="Private Search Recipient", recipient_phone="012-1234567",
+            recipient_address="99 Test Road", weight_kg=1.0,
+        ))
+        db.session.commit()
+
+    login(c, "seller@shop.test", "SellerDemo#2026")
+    response = c.get("/seller/parcels", query_string={"q": "' OR '1'='1"})
+
+    assert response.status_code == 200
+    assert b"No parcels found." in response.data
+    assert b"Private Search Recipient" not in response.data
+    assert b"Traceback" not in response.data
+    assert b"OperationalError" not in response.data
+
+
+def test_script_in_address_is_escaped_on_seller_parcel_detail(client):
+    c, app = client
+    from app.models import Parcel
+
+    login(c, "seller@shop.test", "SellerDemo#2026")
+    response = c.post("/seller/parcels/new", data={
+        "recipient_name": "XSS Test Recipient",
+        "recipient_phone": "012-3456789",
+        "recipient_address": "<script>alert(1)</script>",
+        "weight_kg": "1.25",
+    })
+    assert response.status_code == 302
+
+    with app.app_context():
+        parcel_id = Parcel.query.filter_by(recipient_name="XSS Test Recipient").first().id
+
+    detail = c.get(f"/seller/parcels/{parcel_id}")
+
+    assert detail.status_code == 200
+    assert b"&lt;script&gt;alert(1)&lt;/script&gt;" in detail.data
+    assert b"<script>alert(1)</script>" not in detail.data
+
+
+def test_unknown_or_sequential_tracking_number_returns_generic_not_found(client):
+    c, _ = client
+
+    response = c.get("/track", query_string={"tracking_no": "RX-DEMO000000"})
+
+    assert response.status_code == 200
+    assert b"No parcel has that tracking number." in response.data
+    assert b"Test Recipient" not in response.data
+    assert b"012-" not in response.data
+    assert b"Jalan Contoh" not in response.data
+
+
+def test_public_tracking_never_shows_recipient_personal_data(client):
+    c, _ = client
+
+    response = c.get("/track", query_string={"tracking_no": "RX-DEMO7KQ2M9"})
+
+    assert response.status_code == 200
+    assert b"Registered" in response.data
+    assert b"Test Recipient A" not in response.data
+    assert b"012-0000001" not in response.data
+    assert b"1 Jalan Contoh" not in response.data
