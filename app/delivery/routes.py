@@ -7,6 +7,7 @@ Working now:
   - Rider parcel detail page
   - Rider status update in the correct order (Task 6)
   - Proof-of-delivery photo, required for Delivered and Failed (Task 9)
+  - Protected link to view a delivery photo (Task 12)
 
 Security controls already in place:
   SR3.1  Only Admin can open the assign page and assign parcels (checked on the server)
@@ -15,15 +16,20 @@ Security controls already in place:
          any other value, skipped step or backwards step is rejected (ALLOWED_NEXT)
   SR3.4  Delivery photos: only real JPG/PNG under 5 MB, re-saved clean, random name,
          stored outside app/static (checks in uploads.py)
+         Photos are only shown through /photos/<id>, and only to the assigned rider,
+         the Admin and the seller who owns the parcel (P1, P3)
   SR3.5  Every assignment is written to status_history with who and when
   SR3.6  Forms carry a CSRF token; templates escape recipient data
   SR3.7  The dashboard shows only counts per status, no personal data
          (rider workload and recent activity show staff names, tracking numbers,
          statuses and times only, never recipient details)
 
-Next steps: protected route to view delivery photos (Task 12).
+Next steps: show status history and photo on parcel pages + Admin parcel view (Task 14).
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, current_app
+import re
+
+from flask import (Blueprint, render_template, request, redirect, url_for, flash, abort,
+                   current_app, send_from_directory)
 from flask_login import current_user
 
 from .. import db
@@ -173,3 +179,43 @@ def update_status(parcel_id):
     db.session.commit()
     flash(f"{parcel.tracking_no} is now {new_status}.", "success")
     return redirect(url_for("delivery.rider_parcel_detail", parcel_id=parcel.id))
+
+
+# Only names the server itself created in uploads.py can ever be sent (random hex + .jpg/.png)
+SAFE_PHOTO_NAME = re.compile(r"[0-9a-f]{32}\.(jpg|png)")
+
+
+def can_view_photo(user, parcel):
+    """Who may see a delivery photo (P1, P3): it can show the recipient's door or face."""
+    if user.role == "admin":
+        return True
+    if user.role == "rider":
+        return parcel.assigned_rider_id == user.id     # the rider who delivered it
+    if user.role == "seller":
+        return parcel.seller_id == user.id             # the seller who sent it
+    return False
+
+
+@delivery_bp.route("/photos/<int:photo_id>")
+@role_required("seller", "rider", "admin")             # not logged in -> sent to the login page
+def view_photo(photo_id):
+    """Task 12: show one delivery photo, only to people allowed to see it."""
+    photo = db.session.get(DeliveryPhoto, photo_id)
+    parcel = db.session.get(Parcel, photo.parcel_id) if photo else None
+
+    # Same 403 for "doesn't exist" and "not yours", so IDs can't be guessed
+    if parcel is None or not can_view_photo(current_user, parcel):
+        current_app.logger.warning("Blocked photo access: user %s (%s) tried photo %s",
+                                   current_user.id, current_user.role, photo_id)
+        abort(403)
+
+    # The path comes ONLY from the database, never from the URL, and must look like a
+    # name we created. "../" tricks can't reach other files.
+    if not SAFE_PHOTO_NAME.fullmatch(photo.stored_filename):
+        current_app.logger.error("Unsafe stored photo name for photo %s", photo.id)
+        abort(404)
+
+    response = send_from_directory(current_app.config["UPLOAD_FOLDER"], photo.stored_filename)
+    response.headers["Cache-Control"] = "private, no-store"     # don't keep copies in shared caches
+    response.headers["X-Content-Type-Options"] = "nosniff"      # browser must treat it as an image
+    return response

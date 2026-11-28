@@ -405,3 +405,127 @@ def test_photo_form_only_when_needed(client):
     assert b'type="file"' not in page
     page = c.get(f"/rider/parcels/{parcel(OUT).id}").data                # Out for Delivery
     assert b'type="file"' in page and b'enctype="multipart/form-data"' in page
+
+
+# ---------- Task 12: protected route to view delivery photos (P1, P3) ----------
+
+OTHER_SELLER = ("other.seller@shop.test", "OtherSellerDemo#2026")
+
+
+def as_user(app, who=None):
+    """A fresh browser for one person. Clears the remembered user first, because the
+    test keeps one app context open and Flask-Login would otherwise reuse the last user."""
+    from flask import g
+    g.pop("_login_user", None)
+    c = app.test_client()
+    if who:
+        login(c, who)
+    g.pop("_login_user", None)
+    return c
+
+
+def get_as(app, who, url):
+    c = as_user(app, who)
+    response = c.get(url)
+    from flask import g
+    g.pop("_login_user", None)
+    return response
+
+
+def delivered_photo(app):
+    """Ali delivers his Out for Delivery parcel with a photo; returns the photo row."""
+    c = as_user(app, ALI)
+    set_status(c, parcel(OUT), "Delivered", photo=image_file())
+    rows = photos_for(parcel(OUT))
+    assert len(rows) == 1
+    return rows[0]
+
+
+def add_other_seller():
+    from app import db
+    from app.models import User
+    from app.auth.passwords import hash_password
+    db.session.add(User(name="Other Seller", email=OTHER_SELLER[0], role="seller",
+                        password_hash=hash_password(OTHER_SELLER[1])))
+    db.session.commit()
+
+
+@pytest.mark.parametrize("who", [ALI, ADMIN, SELLER], ids=["assigned rider", "admin", "owning seller"])
+def test_P1_allowed_people_can_view_photo(client, who):
+    _, app = client
+    photo = delivered_photo(app)
+    r = get_as(app, who, f"/photos/{photo.id}")
+    assert r.status_code == 200
+    assert r.mimetype == "image/jpeg"
+    assert r.data[:2] == b"\xff\xd8"                         # really a JPEG
+    assert "no-store" in r.headers["Cache-Control"]
+    assert r.headers["X-Content-Type-Options"] == "nosniff"
+
+
+def test_P1_other_rider_and_other_seller_get_403(client):
+    _, app = client
+    add_other_seller()
+    photo = delivered_photo(app)
+    assert get_as(app, SITI, f"/photos/{photo.id}").status_code == 403
+    assert get_as(app, OTHER_SELLER, f"/photos/{photo.id}").status_code == 403
+
+
+def test_P1_logged_out_visitor_sent_to_login(client):
+    _, app = client
+    photo = delivered_photo(app)
+    r = get_as(app, None, f"/photos/{photo.id}")
+    assert r.status_code == 302 and "/login" in r.headers["Location"]
+
+
+def test_P1_unknown_photo_id_is_403(client):
+    _, app = client
+    assert get_as(app, ADMIN, "/photos/99999").status_code == 403
+
+
+@pytest.mark.parametrize("url", [
+    "/photos/../app/__init__.py",
+    "/photos/..%2f..%2fapp%2f__init__.py",
+    "/photos/%2e%2e%2frequirements.txt",
+    "/photos/-1",
+    "/photos/1.jpg",
+])
+def test_P3_path_tricks_cannot_reach_other_files(client, url):
+    _, app = client
+    delivered_photo(app)
+    r = get_as(app, ADMIN, url)
+    assert r.status_code in (403, 404)
+    assert b"create_app" not in r.data and b"Flask==" not in r.data
+
+
+@pytest.mark.parametrize("stored_name", ["../app/__init__.py", "notes.txt"])
+def test_P3_unsafe_name_in_database_is_never_sent(client, stored_name):
+    """Even if a bad name got into the database, only names the server itself creates
+    (32 random hex characters + .jpg/.png) are ever sent. Flask also blocks "../" by itself;
+    "notes.txt" sits INSIDE uploads/, so only our own name check stops it."""
+    _, app = client
+    from app import db
+    from app.models import DeliveryPhoto, User
+    with open(os.path.join(app.config["UPLOAD_FOLDER"], "notes.txt"), "w") as f:
+        f.write("not a delivery photo")
+    ali = User.query.filter_by(email=ALI[0]).first()
+    bad = DeliveryPhoto(parcel_id=parcel(OUT).id, stored_filename=stored_name, uploaded_by=ali.id)
+    db.session.add(bad)
+    db.session.commit()
+    r = get_as(app, ADMIN, f"/photos/{bad.id}")
+    assert r.status_code == 404
+    assert b"create_app" not in r.data and b"not a delivery photo" not in r.data
+
+
+def test_missing_photo_file_is_404(client):
+    _, app = client
+    photo = delivered_photo(app)
+    os.remove(os.path.join(app.config["UPLOAD_FOLDER"], photo.stored_filename))
+    assert get_as(app, ADMIN, f"/photos/{photo.id}").status_code == 404
+
+
+def test_P5_blocked_photo_access_is_logged(client, caplog):
+    _, app = client
+    photo = delivered_photo(app)
+    with caplog.at_level("WARNING"):
+        get_as(app, SITI, f"/photos/{photo.id}")
+    assert any("Blocked photo access" in m and f"photo {photo.id}" in m for m in caplog.messages)
