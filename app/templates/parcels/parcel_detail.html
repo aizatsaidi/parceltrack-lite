@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, status_badge, waybill, route %}
+{% block title %}Parcel details{% endblock %}
+{% block content_class %}content-narrow{% endblock %}
+{% block content %}
+<a class="back-link" href="{{ url_for('parcels.my_parcels') }}">{{ icon("arrow-left") }} My parcels</a>
+<div class="page-head">
+  <div>
+    <h1>Parcel details</h1>
+    <p>Recipient information and delivery progress for your parcel.</p>
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-head">
+    {{ waybill(parcel.tracking_no, large=true, sub="Tracking number") }}
+    {{ status_badge(parcel.status) }}
+  </div>
+  <div class="card-body">
+    <dl class="facts">
+      <div class="fact"><dt class="k">Recipient</dt><dd class="v">{{ parcel.recipient_name }}</dd></div>
+      <div class="fact"><dt class="k">Phone</dt><dd class="v">{{ parcel.recipient_phone }}</dd></div>
+      <div class="fact"><dt class="k">Delivery address</dt><dd class="v">{{ parcel.recipient_address }}</dd></div>
+      <div class="fact"><dt class="k">Weight</dt><dd class="v">{{ '%.2f'|format(parcel.weight_kg) }} kg</dd></div>
+      <div class="fact"><dt class="k">Registered</dt><dd class="v">{{ parcel.created_at|myt('%d %b %Y, %H:%M') }}</dd></div>
+      {% if parcel.delivered_at %}
+      <div class="fact"><dt class="k">Delivered</dt><dd class="v">{{ parcel.delivered_at|myt('%d %b %Y, %H:%M') }}</dd></div>
+      {% endif %}
+    </dl>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-head"><h2 class="card-title">{{ icon("list") }} Status history</h2></div>
+  <div class="card-body">{{ route(events) }}</div>
+</div>
+{% endblock %}

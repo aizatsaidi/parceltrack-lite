@@ -40,7 +40,7 @@
       <tbody>
       {% for p in parcels %}
         <tr>
-          <td>{{ waybill(p.tracking_no, small=true) }}</td>
+          <td><a class="text-reset text-decoration-none" href="{{ url_for('parcels.parcel_detail', parcel_id=p.id) }}">{{ waybill(p.tracking_no, small=true) }}</a></td>
           <td><span class="person">{{ avatar(p.recipient_name) }}{{ p.recipient_name }}</span></td>
           <td class="muted">{{ p.recipient_phone }}</td>
           <td class="muted">{{ '%.2f'|format(p.weight_kg) }} kg</td>

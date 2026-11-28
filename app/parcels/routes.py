@@ -19,7 +19,7 @@ import re
 import secrets
 import string
 
-from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
+from flask import Blueprint, abort, current_app, render_template, request, redirect, url_for, flash
 from flask_login import current_user
 
 from .. import db, limiter
@@ -52,6 +52,22 @@ def my_parcels():
                                     Parcel.recipient_name.ilike(like)))
     parcels = query.order_by(Parcel.created_at.desc()).all()
     return render_template("parcels/my_parcels.html", parcels=parcels, q=q)
+
+
+@parcels_bp.route("/seller/parcels/<int:parcel_id>")
+@role_required("seller")
+def parcel_detail(parcel_id):
+    """Show one of the signed-in seller's parcels and its status history."""
+    parcel = Parcel.query.filter_by(id=parcel_id, seller_id=current_user.id).first()
+    if parcel is None:
+        # Treat unknown and other sellers' IDs identically to prevent enumeration.
+        abort(403)
+
+    history = StatusHistory.query.filter_by(parcel_id=parcel.id).order_by(
+        StatusHistory.changed_at.asc(), StatusHistory.id.asc()
+    ).all()
+    events = [(event.new_status, event.changed_at) for event in history]
+    return render_template("parcels/parcel_detail.html", parcel=parcel, events=events)
 
 
 @parcels_bp.route("/seller/parcels/new", methods=["GET", "POST"])
