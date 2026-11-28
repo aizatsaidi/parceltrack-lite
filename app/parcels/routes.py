@@ -15,6 +15,7 @@ Security controls already in place:
 
 Next steps: rate-limit the tracking page (SR2.5), better phone validation.
 """
+import math
 import re
 import secrets
 import string
@@ -30,7 +31,7 @@ parcels_bp = Blueprint("parcels", __name__)
 
 # Letters and digits that are easy to read (no 0/O or 1/I)
 TRACKING_ALPHABET = "".join(c for c in string.ascii_uppercase + string.digits if c not in "0O1I")
-PHONE_PATTERN = re.compile(r"^\+?[0-9\- ]{9,15}$")
+PHONE_PATTERN = re.compile(r"^\+?[0-9](?:[ -]?[0-9])*$")
 
 
 def new_tracking_number():
@@ -79,25 +80,39 @@ def new_parcel():
         address = request.form.get("recipient_address", "").strip()
         weight_text = request.form.get("weight_kg", "").strip()
 
-        errors = []
-        if not name or len(name) > 100:
-            errors.append("Recipient name is required (up to 100 characters).")
-        if not PHONE_PATTERN.match(phone):
-            errors.append("Phone number should be 9 to 15 digits, e.g. 012-3456789.")
-        if not address or len(address) > 255:
-            errors.append("Address is required (up to 255 characters).")
+        errors = {}
+        if not name:
+            errors["recipient_name"] = "Enter a recipient name."
+        elif len(name) > 100:
+            errors["recipient_name"] = "Recipient name must be 100 characters or fewer."
+
+        digit_count = sum(char in string.digits for char in phone)
+        if not PHONE_PATTERN.fullmatch(phone) or not 9 <= digit_count <= 15:
+            errors["recipient_phone"] = "Enter a valid phone number with 9 to 15 digits."
+
+        if not address:
+            errors["recipient_address"] = "Enter a delivery address."
+        elif len(address) > 255:
+            errors["recipient_address"] = "Address must be 255 characters or fewer."
+
+        weight = None
         try:
+            if not weight_text:
+                raise ValueError
             weight = float(weight_text)
-            if not 0 < weight <= 30:
+            if not math.isfinite(weight) or not 0 < weight <= 30:
                 raise ValueError
         except ValueError:
-            errors.append("Weight must be a number between 0 and 30 kg.")
-            weight = None
+            errors["weight_kg"] = "Enter a valid weight greater than 0 and no more than 30 kg."
 
         if errors:
-            for e in errors:
-                flash(e, "danger")
-            return render_template("parcels/new_parcel.html", form=request.form), 400
+            form = {
+                "recipient_name": name,
+                "recipient_phone": phone,
+                "recipient_address": address,
+                "weight_kg": weight_text,
+            }
+            return render_template("parcels/new_parcel.html", form=form, errors=errors), 400
 
         parcel = Parcel(tracking_no=new_tracking_number(), seller_id=current_user.id,
                         recipient_name=name, recipient_phone=phone,
@@ -111,7 +126,7 @@ def new_parcel():
         flash(f"Parcel registered. Tracking number: {parcel.tracking_no}", "success")
         return redirect(url_for("parcels.my_parcels"))
 
-    return render_template("parcels/new_parcel.html", form={})
+    return render_template("parcels/new_parcel.html", form={}, errors={})
 
 
 @parcels_bp.route("/track")

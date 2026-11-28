@@ -167,3 +167,65 @@ def test_rider_and_admin_cannot_open_seller_parcel_detail(client, email, passwor
     login(c, email, password)
 
     assert c.get(f"/seller/parcels/{parcel_id}").status_code == 403
+
+
+@pytest.mark.parametrize(("field", "value", "error", "error_id"), [
+    ("recipient_phone", "abc", "Enter a valid phone number with 9 to 15 digits.", "recipient-phone-error"),
+    ("recipient_phone", "---------", "Enter a valid phone number with 9 to 15 digits.", "recipient-phone-error"),
+    ("weight_kg", "-2", "Enter a valid weight greater than 0 and no more than 30 kg.", "weight-error"),
+    ("weight_kg", "100", "Enter a valid weight greater than 0 and no more than 30 kg.", "weight-error"),
+    ("weight_kg", "nan", "Enter a valid weight greater than 0 and no more than 30 kg.", "weight-error"),
+    ("recipient_address", "", "Enter a delivery address.", "recipient-address-error"),
+    ("recipient_address", "   ", "Enter a delivery address.", "recipient-address-error"),
+    ("recipient_address", "A" * 256, "Address must be 255 characters or fewer.", "recipient-address-error"),
+    ("recipient_name", "   ", "Enter a recipient name.", "recipient-name-error"),
+    ("recipient_name", "N" * 101, "Recipient name must be 100 characters or fewer.", "recipient-name-error"),
+])
+def test_registration_validation_shows_field_error_and_keeps_input(
+    client, field, value, error, error_id
+):
+    c, _ = client
+    login(c, "seller@shop.test", "SellerDemo#2026")
+    form = {
+        "recipient_name": "Test Recipient",
+        "recipient_phone": "012-3456789",
+        "recipient_address": "12 Test Road",
+        "weight_kg": "1.25",
+    }
+    form[field] = value
+
+    response = c.post("/seller/parcels/new", data=form)
+    body = response.data
+
+    assert response.status_code == 400
+    assert error.encode() in body
+    assert f'id="{error_id}" role="alert"'.encode() in body
+    assert b"Traceback" not in body
+    assert b"ValueError" not in body
+    # Valid values and the rejected value are re-rendered safely in the form.
+    for name in ("recipient_name", "recipient_phone", "recipient_address", "weight_kg"):
+        if name != field and form[name].strip():
+            assert form[name].strip().encode() in body
+    if value.strip():
+        assert value.strip().encode() in body
+
+
+def test_registration_trims_values_before_saving(client):
+    c, app = client
+    from app.models import Parcel
+
+    login(c, "seller@shop.test", "SellerDemo#2026")
+    response = c.post("/seller/parcels/new", data={
+        "recipient_name": "  Trimmed Recipient  ",
+        "recipient_phone": " 012-3456789 ",
+        "recipient_address": "  12 Trim Road  ",
+        "weight_kg": " 1.25 ",
+    })
+
+    assert response.status_code == 302
+    with app.app_context():
+        parcel = Parcel.query.filter_by(recipient_name="Trimmed Recipient").first()
+        assert parcel is not None
+        assert parcel.recipient_phone == "012-3456789"
+        assert parcel.recipient_address == "12 Trim Road"
+        assert parcel.weight_kg == 1.25

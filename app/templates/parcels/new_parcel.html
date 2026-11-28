@@ -15,20 +15,28 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="row g-3">
       <div class="col-sm-6 field mb-0">
+        {% set name_error = errors.get('recipient_name') %}
         <label for="recipient_name">Recipient name</label>
-        <input class="input" id="recipient_name" name="recipient_name" maxlength="100" value="{{ form.get('recipient_name', '') }}" required>
+        <input class="input{% if name_error %} is-invalid{% endif %}" id="recipient_name" name="recipient_name" maxlength="100" value="{{ form.get('recipient_name', '') }}" {% if name_error %}aria-invalid="true" aria-describedby="recipient-name-error"{% endif %} required>
+        {% if name_error %}<p class="hint text-danger" id="recipient-name-error" role="alert">{{ name_error }}</p>{% endif %}
       </div>
       <div class="col-sm-6 field mb-0">
+        {% set phone_error = errors.get('recipient_phone') %}
         <label for="recipient_phone">Recipient phone</label>
-        <input class="input" id="recipient_phone" name="recipient_phone" maxlength="20" inputmode="tel" placeholder="012-3456789" value="{{ form.get('recipient_phone', '') }}" required>
+        <input class="input{% if phone_error %} is-invalid{% endif %}" id="recipient_phone" name="recipient_phone" type="tel" maxlength="20" inputmode="tel" placeholder="012-3456789" value="{{ form.get('recipient_phone', '') }}" {% if phone_error %}aria-invalid="true" aria-describedby="recipient-phone-error"{% endif %} required>
+        {% if phone_error %}<p class="hint text-danger" id="recipient-phone-error" role="alert">{{ phone_error }}</p>{% endif %}
       </div>
       <div class="col-12 field mb-0">
+        {% set address_error = errors.get('recipient_address') %}
         <label for="recipient_address">Delivery address</label>
-        <textarea class="textarea" id="recipient_address" name="recipient_address" maxlength="255" rows="3" required>{{ form.get('recipient_address', '') }}</textarea>
+        <textarea class="textarea{% if address_error %} is-invalid{% endif %}" id="recipient_address" name="recipient_address" maxlength="255" rows="3" {% if address_error %}aria-invalid="true" aria-describedby="recipient-address-error"{% endif %} required>{{ form.get('recipient_address', '') }}</textarea>
+        {% if address_error %}<p class="hint text-danger" id="recipient-address-error" role="alert">{{ address_error }}</p>{% endif %}
       </div>
       <div class="col-sm-6 field">
+        {% set weight_error = errors.get('weight_kg') %}
         <label for="weight_kg">Weight (kg)</label>
-        <input class="input" id="weight_kg" name="weight_kg" type="number" step="0.01" min="0.01" max="30" value="{{ form.get('weight_kg', '') }}" required aria-describedby="weight-hint">
+        <input class="input{% if weight_error %} is-invalid{% endif %}" id="weight_kg" name="weight_kg" type="number" step="0.01" min="0.01" max="30" value="{{ form.get('weight_kg', '') }}" {% if weight_error %}aria-invalid="true" aria-describedby="weight-error weight-hint"{% else %}aria-describedby="weight-hint"{% endif %} required>
+        {% if weight_error %}<p class="hint text-danger" id="weight-error" role="alert">{{ weight_error }}</p>{% endif %}
         <p class="hint" id="weight-hint">Up to 30 kg.</p>
       </div>
     </div>
