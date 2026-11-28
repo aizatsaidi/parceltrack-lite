@@ -89,6 +89,10 @@ def create_app():
     app.register_blueprint(parcels_bp)
     app.register_blueprint(delivery_bp)
 
+    # Daily clean-up command for policy P3 (Task 16): flask --app app anonymise-old-parcels
+    from .maintenance import register_commands
+    register_commands(app)
+
     # Times are stored in UTC; show them in Malaysia time (UTC+8)
     @app.template_filter("myt")
     def to_malaysia_time(value, fmt="%d %b %Y, %H:%M"):
