@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, status_badge, waybill, avatar %}
+{% block title %}{{ status or "All" }} parcels{% endblock %}
+{% block content %}
+{# Task 14: Admin-only list. No recipient names, phones or addresses here (P3);
+   they are shown only on the parcel page when the Admin opens one. #}
+<a class="back-link" href="{{ url_for('delivery.assign') }}">{{ icon("arrow-left") }} Dashboard</a>
+
+<div class="page-head">
+  <div>
+    <h1>{{ status or "All" }} parcels</h1>
+    <p>Tap a tracking number to see the parcel's details, every status change and the delivery photo.</p>
+  </div>
+</div>
+
+<nav class="d-flex flex-wrap gap-2 mb-3" aria-label="Filter by status">
+  <a class="button button-small {{ '' if not status else 'button-secondary' }}"
+     href="{{ url_for('delivery.admin_parcels') }}" {% if not status %}aria-current="page"{% endif %}>All · {{ total }}</a>
+  {% for s, n in counts.items() %}
+    <a class="button button-small {{ '' if status == s else 'button-secondary' }}"
+       href="{{ url_for('delivery.admin_parcels', status=s) }}" {% if status == s %}aria-current="page"{% endif %}>{{ s }} · {{ n }}</a>
+  {% endfor %}
+</nav>
+
+<div class="card">
+  <div class="card-head">
+    <h2>{{ status or "All" }} parcels</h2>
+    <span class="count">{{ parcels|length }} parcel{{ '' if parcels|length == 1 else 's' }}</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table" style="min-width: 0">
+      <thead><tr><th>Tracking number</th><th>Status</th><th class="d-none d-md-table-cell">Rider</th><th class="d-none d-lg-table-cell">Registered</th><th class="d-none d-md-table-cell"><span class="visually-hidden">Open</span></th></tr></thead>
+      <tbody>
+      {% for p in parcels %}
+        <tr>
+          <td><a class="text-reset text-decoration-none" href="{{ url_for('delivery.admin_parcel_detail', parcel_id=p.id) }}">{{ waybill(p.tracking_no, small=true) }}</a></td>
+          <td>{{ status_badge(p.status) }}</td>
+          <td class="d-none d-md-table-cell">{% if p.rider %}<span class="person">{{ avatar(p.rider.name) }}{{ p.rider.name }}</span>{% else %}<span class="muted">Not assigned</span>{% endif %}</td>
+          <td class="small muted d-none d-lg-table-cell">{{ p.created_at|myt('%d %b, %H:%M') }}</td>
+          <td class="d-none d-md-table-cell"><a class="button button-small button-secondary" href="{{ url_for('delivery.admin_parcel_detail', parcel_id=p.id) }}">Open{{ icon("chevron-right") }}<span class="visually-hidden"> {{ p.tracking_no }}</span></a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="empty">
+          <div class="chip-icon">{{ icon("inbox") }}</div>
+          <strong>No {{ status|lower if status else "" }} parcels.</strong>
+          Choose another status above.
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

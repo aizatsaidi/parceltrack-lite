@@ -12,16 +12,18 @@
   </div>
   <div class="actions">
     <a class="button" href="#waiting">{{ icon("user") }} Assign riders</a>
-    <a class="button button-glass" href="{{ url_for('parcels.track') }}">{{ icon("search") }} Track a parcel</a>
+    <a class="button button-glass" href="{{ url_for('delivery.admin_parcels') }}">{{ icon("list") }} All parcels</a>
   </div>
 </section>
 
 {% set STAT_ICONS = {"Registered": "package", "Assigned": "user", "Out for Delivery": "truck", "Delivered": "check-circle", "Failed": "alert"} %}
 <h2 class="visually-hidden">Parcels by status</h2>
+{# Task 14: each count opens the list of parcels with that status (counts only here, P3) #}
 <div class="stats">
   {% for status, n in counts.items() %}
     {% set pct = ((n / total * 100) if total else 0)|round|int %}
-    <div class="card stat stat-{{ status|lower|replace(' ', '-') }}">
+    <a class="card stat stat-{{ status|lower|replace(' ', '-') }} text-reset text-decoration-none"
+       href="{{ url_for('delivery.admin_parcels', status=status) }}" aria-label="{{ n }} {{ status }}: show these parcels">
       <div class="top">
         <span class="name">{{ status }}</span>
         <span class="chip-icon">{{ icon(STAT_ICONS.get(status, "package")) }}</span>
@@ -29,7 +31,7 @@
       <div class="value">{{ n }}</div>
       <div class="share" aria-hidden="true"><span style="width:{{ pct }}%"></span></div>
       <div class="foot">{{ pct }}% of all parcels</div>
-    </div>
+    </a>
   {% endfor %}
 </div>
 
@@ -90,7 +92,7 @@
           <li>
             <span class="dot dot-{{ a.new|lower|replace(' ', '-') }}">{{ icon(ACT_ICONS.get(a.new, "package")) }}</span>
             <div>
-              <div class="what"><span class="mono">{{ a.tracking_no }}</span> {{ "registered" if not a.old else "moved to " ~ a.new }}</div>
+              <div class="what"><a class="mono" href="{{ url_for('delivery.admin_parcel_detail', parcel_id=a.parcel_id) }}">{{ a.tracking_no }}</a> {{ "registered" if not a.old else "moved to " ~ a.new }}</div>
               <div class="meta">by {{ a.by }}, {{ a.when|myt('%d %b, %H:%M') }}</div>
             </div>
           </li>
@@ -102,6 +104,8 @@
   </section>
 </div>
 
+{# No recipient names, phones or addresses on the dashboard (P3): the Admin only needs
+   the tracking number and weight to choose a rider. Open the parcel for full details. #}
 <div class="card" id="waiting">
   <div class="card-head">
     <h2>Waiting for a rider</h2>
@@ -109,12 +113,11 @@
   </div>
   <div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Tracking number</th><th>Recipient</th><th>Weight</th><th>Registered</th><th>Assign to</th></tr></thead>
+      <thead><tr><th>Tracking number</th><th>Weight</th><th>Registered</th><th>Assign to</th></tr></thead>
       <tbody>
       {% for p in parcels %}
         <tr>
-          <td>{{ waybill(p.tracking_no, small=true) }}</td>
-          <td><span class="person">{{ avatar(p.recipient_name) }}{{ p.recipient_name }}</span></td>
+          <td><a class="text-reset text-decoration-none" href="{{ url_for('delivery.admin_parcel_detail', parcel_id=p.id) }}">{{ waybill(p.tracking_no, small=true) }}</a></td>
           <td class="muted">{{ '%.2f'|format(p.weight_kg) }} kg</td>
           <td class="small muted">{{ p.created_at|myt('%d %b, %H:%M') }}</td>
           <td>
@@ -131,7 +134,7 @@
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5" class="empty">
+        <tr><td colspan="4" class="empty">
           <div class="chip-icon">{{ icon("check-circle") }}</div>
           <strong>Every parcel has a rider.</strong>
           New parcels appear here when sellers register them.

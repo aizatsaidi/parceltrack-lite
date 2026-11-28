@@ -1,0 +1,17 @@
+{# Task 14: the delivery photo, used on the rider and Admin parcel pages.
+   The picture is loaded through the protected /photos/<id> route (Task 12),
+   never from a public folder. #}
+{% if photo or parcel.status in ["Delivered", "Failed"] %}
+<div class="card card-pad">
+  <h2 class="card-title">{{ icon("check-circle") }} Proof of delivery</h2>
+  {% if photo %}
+    <a href="{{ url_for('delivery.view_photo', photo_id=photo.id) }}" target="_blank" rel="noopener">
+      <img class="img-fluid rounded border d-block" src="{{ url_for('delivery.view_photo', photo_id=photo.id) }}"
+           alt="Proof of delivery photo for {{ parcel.tracking_no }}" loading="lazy">
+    </a>
+    <p class="small muted mt-2 mb-0">Uploaded {{ photo.uploaded_at|myt('%d %b %Y, %H:%M') }}. Tap the photo to open it full size.</p>
+  {% else %}
+    <p class="muted mb-0">No photo was uploaded for this parcel.</p>
+  {% endif %}
+</div>
+{% endif %}

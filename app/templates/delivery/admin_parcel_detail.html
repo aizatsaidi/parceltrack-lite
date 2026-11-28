@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, status_badge, waybill, route, avatar %}
+{% block title %}{{ parcel.tracking_no }}{% endblock %}
+{% block content_class %}content-narrow{% endblock %}
+{% block content %}
+{# Task 14: Admin-only parcel page (role_required("admin") in routes.py). #}
+<a class="back-link" href="{{ url_for('delivery.admin_parcels') }}">{{ icon("arrow-left") }} All parcels</a>
+
+<div class="card">
+  <div class="card-head">
+    {{ waybill(parcel.tracking_no, large=true, sub="Registered " ~ parcel.created_at|myt('%d %b %Y')) }}
+    {{ status_badge(parcel.status) }}
+  </div>
+  <div class="card-body">
+    <h2 class="card-title">{{ icon("pin") }} Parcel details</h2>
+    <div class="facts">
+      <div class="fact">{{ icon("user") }}<div><div class="k">Recipient</div><div class="v">{{ parcel.recipient_name }}</div></div></div>
+      <div class="fact">{{ icon("phone") }}<div><div class="k">Phone</div><div class="v">{{ parcel.recipient_phone }}</div></div></div>
+      <div class="fact">{{ icon("pin") }}<div><div class="k">Address</div><div class="v">{{ parcel.recipient_address }}</div></div></div>
+      <div class="fact">{{ icon("weight") }}<div><div class="k">Weight</div><div class="v">{{ '%.2f'|format(parcel.weight_kg) }} kg</div></div></div>
+      <div class="fact">{{ icon("store") }}<div><div class="k">Seller</div><div class="v">{{ parcel.seller.name }}</div></div></div>
+      <div class="fact">{{ icon("truck") }}<div><div class="k">Rider</div><div class="v">{{ parcel.rider.name if parcel.rider else "Not assigned yet" }}</div></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="card card-pad">
+  <h2 class="card-title">{{ icon("clock") }} Delivery progress</h2>
+  {% set events = [] %}
+  {% for c in changes %}{% set _ = events.append((c.new, c.when)) %}{% endfor %}
+  {{ route(events) }}
+</div>
+
+{# Every change from the status_history audit log (P5), oldest first, with who and when #}
+<div class="card card-pad">
+  <h2 class="card-title">{{ icon("list") }} Status history <span class="ms-auto small muted fw-normal">{{ changes|length }} change{{ '' if changes|length == 1 else 's' }}</span></h2>
+  {% set DOT_ICONS = {"Registered": "package", "Assigned": "user", "Out for Delivery": "truck", "Delivered": "check", "Failed": "x"} %}
+  <ol class="activity">
+    {% for c in changes %}
+      <li>
+        <span class="dot dot-{{ c.new|lower|replace(' ', '-') }}">{{ icon(DOT_ICONS.get(c.new, "package")) }}</span>
+        <div>
+          <div class="what">{{ "Registered" if not c.old else "Moved to " ~ c.new }}</div>
+          <div class="meta">by {{ c.by }}, {{ c.when|myt('%d %b %Y, %H:%M') }}</div>
+        </div>
+      </li>
+    {% endfor %}
+  </ol>
+</div>
+
+{% include "delivery/_photo_card.html" %}
+{% endblock %}

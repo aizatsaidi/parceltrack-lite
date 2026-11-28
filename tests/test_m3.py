@@ -1,6 +1,7 @@
 """
 Module 3 (Aizat): security tests for the rider status update (Task 6, SR3.3)
-and the proof-of-delivery photo upload (Task 9, SR3.4).
+the proof-of-delivery photo upload (Task 9, SR3.4), the protected photo route
+(Task 12) and the parcel pages and Admin parcel view (Task 14).
 Run with:   python -m pytest tests -v
 
 Demo parcels (from app/seed.py, fake data only):
@@ -529,3 +530,91 @@ def test_P5_blocked_photo_access_is_logged(client, caplog):
     with caplog.at_level("WARNING"):
         get_as(app, SITI, f"/photos/{photo.id}")
     assert any("Blocked photo access" in m and f"photo {photo.id}" in m for m in caplog.messages)
+
+
+
+# ---------- Task 14: timeline, photo on pages, Admin parcel view, dashboard (SR3.1, SR3.7) ----------
+
+PERSONAL = [b"Test Recipient", b"012-000000", b"Jalan Contoh"]     # fake recipient data in seed.py
+
+
+def test_rider_timeline_shows_every_change_in_order_with_time(client):
+    _, app = client
+    c = as_user(app, ALI)
+    p = parcel("RX-DEMO9HN3QX")
+    set_status(c, p, "Out for Delivery")
+    set_status(c, p, "Delivered", photo=image_file())
+    page = c.get(f"/rider/parcels/{p.id}").data.decode()
+    steps = ["Registered", "Assigned", "Out for Delivery", "Delivered"]
+    positions = [page.index(f'<span class="label">{s}') for s in steps]
+    assert positions == sorted(positions)                            # in order
+    assert "Not yet" not in page                                     # every step has a time
+
+
+def test_rider_page_shows_photo_through_protected_route(client):
+    _, app = client
+    photo = delivered_photo(app)
+    page = get_as(app, ALI, f"/rider/parcels/{parcel(OUT).id}").data.decode()
+    assert f'src="/photos/{photo.id}"' in page
+    assert "/uploads/" not in page and "/static/" + photo.stored_filename not in page
+
+
+def test_admin_parcel_page_shows_history_with_who_and_photo(client):
+    _, app = client
+    photo = delivered_photo(app)
+    page = get_as(app, ADMIN, f"/admin/parcels/{parcel(OUT).id}").data.decode()
+    assert "RX-DEMOT5W8LC" in page and "Rider Ali" in page
+    assert f'src="/photos/{photo.id}"' in page
+    history = page[page.index("Status history"):]
+    order = [history.index(s) for s in ("Registered", "Assigned", "Out for Delivery", "Delivered")]
+    assert order == sorted(order)                                    # oldest first
+    assert "Admin RapidExpress" in history                           # who assigned it
+    assert "Rider Ali" in history                                    # who delivered it
+
+
+@pytest.mark.parametrize("url", ["/admin/parcels", "/admin/parcels/5", "/admin/parcels?status=Delivered"])
+@pytest.mark.parametrize("who", [SELLER, ALI], ids=["seller", "rider"])
+def test_SR3_1_admin_parcel_pages_are_admin_only(client, url, who):
+    _, app = client
+    assert get_as(app, who, url).status_code == 403
+
+
+@pytest.mark.parametrize("url", ["/admin/parcels", "/admin/parcels/5"])
+def test_SR3_1_admin_parcel_pages_need_login(client, url):
+    _, app = client
+    r = get_as(app, None, url)
+    assert r.status_code == 302 and "/login" in r.headers["Location"]
+
+
+def test_admin_unknown_parcel_is_404(client):
+    _, app = client
+    assert get_as(app, ADMIN, "/admin/parcels/99999").status_code == 404
+
+
+def test_SR3_7_dashboard_has_no_personal_data(client):
+    _, app = client
+    page = get_as(app, ADMIN, "/admin/assign").data
+    for value in PERSONAL:
+        assert value not in page
+
+
+def test_SR3_7_parcel_list_has_no_personal_data(client):
+    _, app = client
+    page = get_as(app, ADMIN, "/admin/parcels").data
+    for value in PERSONAL:
+        assert value not in page
+
+
+def test_dashboard_counts_link_to_filtered_list(client):
+    _, app = client
+    page = get_as(app, ADMIN, "/admin/assign").data.decode()
+    assert 'href="/admin/parcels?status=Delivered"' in page
+    listed = get_as(app, ADMIN, "/admin/parcels?status=Delivered").data.decode()
+    assert "RX-DEMOH2Y6RF" in listed                                 # the Delivered parcel
+    assert "RX-DEMO9HN3QX" not in listed                             # an Assigned one
+
+
+def test_unknown_status_filter_is_ignored_safely(client):
+    _, app = client
+    r = get_as(app, ADMIN, "/admin/parcels?status=' OR '1'='1")
+    assert r.status_code == 302 and r.headers["Location"].endswith("/admin/parcels")

@@ -8,6 +8,8 @@ Working now:
   - Rider status update in the correct order (Task 6)
   - Proof-of-delivery photo, required for Delivered and Failed (Task 9)
   - Protected link to view a delivery photo (Task 12)
+  - Status timeline and photo on the rider page; Admin parcel list and parcel view;
+    dashboard counts link to a filtered list (Task 14)
 
 Security controls already in place:
   SR3.1  Only Admin can open the assign page and assign parcels (checked on the server)
@@ -22,9 +24,11 @@ Security controls already in place:
   SR3.6  Forms carry a CSRF token; templates escape recipient data
   SR3.7  The dashboard shows only counts per status, no personal data
          (rider workload and recent activity show staff names, tracking numbers,
-         statuses and times only, never recipient details)
+         statuses and times only, never recipient details). The Admin parcel list
+         also leaves out recipient details; they appear only on the Admin-only
+         parcel page (P3: show personal data only where it is needed)
 
-Next steps: show status history and photo on parcel pages + Admin parcel view (Task 14).
+Next steps: anonymise recipient data 12 months after delivery (P3, Task 16).
 """
 import re
 
@@ -100,7 +104,7 @@ def assign():
               .limit(5).all())
     names = {u.id: u.name for u in User.query.filter(
         User.id.in_({h.changed_by for h in recent})).all()} if recent else {}
-    activity = [{"tracking_no": h.parcel.tracking_no, "old": h.old_status, "new": h.new_status,
+    activity = [{"tracking_no": h.parcel.tracking_no, "parcel_id": h.parcel_id, "old": h.old_status, "new": h.new_status,
                  "by": names.get(h.changed_by, "Unknown"), "when": h.changed_at} for h in recent]
 
     return render_template("delivery/assign.html", counts=counts, total=sum(counts.values()),
@@ -113,6 +117,11 @@ def rider_parcels():
     parcels = (Parcel.query.filter_by(assigned_rider_id=current_user.id)  # own only
                .order_by(Parcel.created_at.desc()).all())
     return render_template("delivery/rider_parcels.html", parcels=parcels)
+
+
+def latest_photo(parcel_id):
+    return (DeliveryPhoto.query.filter_by(parcel_id=parcel_id)
+            .order_by(DeliveryPhoto.id.desc()).first())
 
 
 def own_parcel_or_403(parcel_id):
@@ -133,8 +142,7 @@ def own_parcel_or_403(parcel_id):
 def rider_parcel_detail(parcel_id):
     parcel = own_parcel_or_403(parcel_id)
     next_options = ALLOWED_NEXT.get(parcel.status, [])
-    photo = (DeliveryPhoto.query.filter_by(parcel_id=parcel.id)
-             .order_by(DeliveryPhoto.id.desc()).first())
+    photo = latest_photo(parcel.id)
     return render_template("delivery/rider_parcel_detail.html", parcel=parcel,
                            next_options=next_options,
                            needs_photo=any(s in PHOTO_REQUIRED for s in next_options),
@@ -219,3 +227,39 @@ def view_photo(photo_id):
     response.headers["Cache-Control"] = "private, no-store"     # don't keep copies in shared caches
     response.headers["X-Content-Type-Options"] = "nosniff"      # browser must treat it as an image
     return response
+
+
+# ---------- Task 14: Admin parcel list and parcel view (Admin only, SR3.1) ----------
+
+@delivery_bp.route("/admin/parcels")
+@role_required("admin")
+def admin_parcels():
+    """All parcels, optionally filtered by status (the dashboard counts link here).
+    Only tracking number, status, rider and date: no recipient details (P3)."""
+    status = request.args.get("status", "")
+    query = Parcel.query
+    if status:
+        if status not in STATUSES:                         # only real statuses, never free text
+            return redirect(url_for("delivery.admin_parcels"))
+        query = query.filter_by(status=status)             # ORM query, no SQL strings
+    parcels = query.order_by(Parcel.created_at.desc()).all()
+    counts = {s: Parcel.query.filter_by(status=s).count() for s in STATUSES}
+    return render_template("delivery/admin_parcels.html", parcels=parcels, status=status,
+                           counts=counts, total=sum(counts.values()))
+
+
+@delivery_bp.route("/admin/parcels/<int:parcel_id>")
+@role_required("admin")
+def admin_parcel_detail(parcel_id):
+    """One parcel for the Admin: details, rider, every status change with who and when
+    (from the status_history audit log, P5), and the delivery photo."""
+    parcel = db.session.get(Parcel, parcel_id)
+    if parcel is None:
+        abort(404)
+    history = parcel.history                               # oldest first
+    ids = {h.changed_by for h in history}
+    names = {u.id: u.name for u in User.query.filter(User.id.in_(ids)).all()} if ids else {}
+    changes = [{"old": h.old_status, "new": h.new_status, "when": h.changed_at,
+                "by": names.get(h.changed_by, "Unknown")} for h in history]
+    return render_template("delivery/admin_parcel_detail.html", parcel=parcel,
+                           changes=changes, photo=latest_photo(parcel.id))

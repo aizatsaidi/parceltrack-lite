@@ -59,9 +59,9 @@
   {% else %}
     <div class="notice notice-{{ 'success' if parcel.status == 'Delivered' else 'info' }} mb-0">
       {{ icon("check-circle" if parcel.status == "Delivered" else "info") }}
-      <span>{% if parcel.status in ["Delivered", "Failed"] %}This delivery is finished. No more changes are needed.{% else %}No update is needed right now.{% endif %}
-        {% if photo %}<br>Proof photo saved on {{ photo.uploaded_at|myt }}.{% endif %}</span>
+      <span>{% if parcel.status in ["Delivered", "Failed"] %}This delivery is finished. No more changes are needed.{% else %}No update is needed right now.{% endif %}</span>
     </div>
   {% endif %}
 </div>
+{% include "delivery/_photo_card.html" %}
 {% endblock %}
