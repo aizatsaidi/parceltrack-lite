@@ -34,8 +34,10 @@ GENERIC_LOGIN_ERROR = "Invalid email or password."
 
 
 def log_event(user, event):
-    db.session.add(LoginEvent(user_id=user.id if user else None,
-                              event=event, ip_address=request.remote_addr))
+    entry = LoginEvent(user_id=user.id if user else None,
+                       event=event, ip_address=request.remote_addr)
+    db.session.add(entry)
+    return entry
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -58,10 +60,11 @@ def login():
         if user and user.is_active_account and verify_password(user.password_hash, password):
             user.failed_logins = 0
             user.locked_until = None
-            log_event(user, "login")
+            login_event = log_event(user, "login")
             db.session.commit()
             session.clear()  # start a fresh session at login
             login_user(user)
+            session["login_event_id"] = login_event.id
             session.permanent = True  # idle timeout from PERMANENT_SESSION_LIFETIME
             return redirect(url_for("home"))
 
@@ -158,10 +161,11 @@ def change_password():
             return render_template("auth/change_password.html"), 400
 
         user.password_hash = hash_password(new_password)
-        log_event(user, "password_changed")
+        password_event = log_event(user, "password_changed")
         db.session.commit()
         session.clear()
         login_user(user)
+        session["login_event_id"] = password_event.id
         session.permanent = True
         flash("Your password has been changed.", "success")
         return redirect(url_for("home"))
