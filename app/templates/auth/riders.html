@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, avatar %}
+{% block title %}Manage riders{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Manage riders</h1>
+    <p>Create rider accounts and review their active state.</p>
+  </div>
+</div>
+
+<section class="card card-pad" id="create-rider">
+  <h2 class="card-title">{{ icon("user-plus") }} Create a rider account</h2>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="field">
+      <label for="name">Rider name</label>
+      <input class="input" id="name" name="name" maxlength="100" value="{{ name or '' }}" required>
+    </div>
+    <div class="field">
+      <label for="email">Email</label>
+      <input class="input" type="email" id="email" name="email" maxlength="120" value="{{ email or '' }}" placeholder="rider@example.com" required>
+    </div>
+    <div class="field">
+      <label for="temporary_password">Temporary password</label>
+      <input class="input" type="password" id="temporary_password" name="temporary_password" minlength="10" required aria-describedby="temporary-password-hint">
+      <p class="hint" id="temporary-password-hint">At least 10 characters. Give this password to the rider securely.</p>
+    </div>
+    <button class="button">Create rider</button>
+  </form>
+</section>
+
+<section class="card" aria-labelledby="rider-list-title">
+  <div class="card-head">
+    <h2 id="rider-list-title">Rider accounts</h2>
+    <span class="count">{{ riders|length }} rider{{ '' if riders|length == 1 else 's' }}</span>
+  </div>
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Name</th><th>Email</th><th>Account state</th></tr></thead>
+      <tbody>
+      {% for rider in riders %}
+        <tr>
+          <td><span class="person">{{ avatar(rider.name) }}{{ rider.name }}</span></td>
+          <td>{{ rider.email }}</td>
+          <td>{{ "Active" if rider.is_active_account else "Disabled" }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="3" class="empty">
+          <div class="chip-icon">{{ icon("inbox") }}</div>
+          <strong>No rider accounts yet.</strong>
+          Create a rider account using the form above.
+        </td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

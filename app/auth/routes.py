@@ -14,7 +14,7 @@ Security controls already in place:
   SR1.6  Disabled accounts cannot log in
   SR1.7  Logins and failed logins are logged, never the password
 
-Next steps: Admin creates/disables Rider accounts, change password page.
+Next steps: Admin disables Rider accounts, change password page.
 """
 from datetime import timedelta
 
@@ -22,6 +22,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_user, logout_user, login_required, current_user
 from .. import db
 from ..models import User, LoginEvent, utcnow
+from ..security import role_required
 from .passwords import hash_password, verify_password
 
 auth_bp = Blueprint("auth", __name__)
@@ -115,6 +116,43 @@ def register():
         return redirect(url_for("auth.login"))
 
     return render_template("auth/register.html")
+
+
+@auth_bp.route("/admin/riders", methods=["GET", "POST"])
+@role_required("admin")
+def admin_riders():
+    """Let Admin create rider accounts and review their account state."""
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        email = request.form.get("email", "").strip().lower()
+        temporary_password = request.form.get("temporary_password", "")
+
+        errors = []
+        if not name or len(name) > 100:
+            errors.append("Please enter the rider's name (up to 100 characters).")
+        if "@" not in email or len(email) > 120:
+            errors.append("Please enter a valid email address.")
+        if len(temporary_password) < MIN_PASSWORD_LENGTH:
+            errors.append(f"Temporary password must be at least {MIN_PASSWORD_LENGTH} characters.")
+        if User.query.filter_by(email=email).first():
+            errors.append("This email cannot be used. Please try another.")
+
+        if errors:
+            for error in errors:
+                flash(error, "danger")
+            riders = User.query.filter_by(role="rider").order_by(User.name).all()
+            return render_template("auth/riders.html", riders=riders,
+                                   name=name, email=email), 400
+
+        rider = User(name=name, email=email, role="rider",
+                     password_hash=hash_password(temporary_password))
+        db.session.add(rider)
+        db.session.commit()
+        flash("Rider account created.", "success")
+        return redirect(url_for("auth.admin_riders"))
+
+    riders = User.query.filter_by(role="rider").order_by(User.name).all()
+    return render_template("auth/riders.html", riders=riders)
 
 
 @auth_bp.route("/logout", methods=["POST"])

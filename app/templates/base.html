@@ -54,6 +54,7 @@
       <div class="nav-label">Menu</div>
       {% if current_user.role == 'admin' %}
         <a class="nav-item" href="{{ url_for('delivery.assign') }}" {% if here == 'delivery.assign' %}aria-current="page"{% endif %}>{{ icon("dashboard") }} Dashboard</a>
+        <a class="nav-item" href="{{ url_for('auth.admin_riders') }}" {% if here == 'auth.admin_riders' %}aria-current="page"{% endif %}>{{ icon("user-plus") }} Manage riders</a>
       {% elif current_user.role == 'seller' %}
         <a class="nav-item" href="{{ url_for('parcels.my_parcels') }}" {% if here == 'parcels.my_parcels' %}aria-current="page"{% endif %}>{{ icon("list") }} My parcels</a>
         <a class="nav-item" href="{{ url_for('parcels.new_parcel') }}" {% if here == 'parcels.new_parcel' %}aria-current="page"{% endif %}>{{ icon("plus") }} Register a parcel</a>
