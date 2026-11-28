@@ -38,20 +38,29 @@
         "Delivered": ("check", "button", "Delivered to the recipient"),
         "Failed": ("x", "button button-secondary", "Delivery failed"),
     } %}
-    <div class="d-grid gap-2">
+    {# Task 9: Delivered and Failed need a photo, so the form sends files (multipart).
+       accept= only helps the phone pick the right files; the server checks everything again (SR3.4). #}
+    <form method="post" action="{{ url_for('delivery.update_status', parcel_id=parcel.id) }}"
+          {% if needs_photo %}enctype="multipart/form-data"{% endif %} class="d-grid gap-2">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if needs_photo %}
+        <div class="field">
+          <label for="photo">Proof of delivery photo</label>
+          <input class="input" type="file" id="photo" name="photo"
+                 accept=".jpg,.jpeg,.png,image/jpeg,image/png" required>
+          <p class="hint">Take or choose one photo: JPG or PNG, up to 5 MB. Needed for Delivered or Failed.</p>
+        </div>
+      {% endif %}
       {% for option in next_options %}
         {% set ic, cls, label = BUTTONS.get(option, ("check", "button", option)) %}
-        <form method="post" action="{{ url_for('delivery.update_status', parcel_id=parcel.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <input type="hidden" name="new_status" value="{{ option }}">
-          <button class="{{ cls }} button-lg button-block">{{ icon(ic) }} {{ label }}</button>
-        </form>
+        <button class="{{ cls }} button-lg button-block" name="new_status" value="{{ option }}">{{ icon(ic) }} {{ label }}</button>
       {% endfor %}
-    </div>
+    </form>
   {% else %}
     <div class="notice notice-{{ 'success' if parcel.status == 'Delivered' else 'info' }} mb-0">
       {{ icon("check-circle" if parcel.status == "Delivered" else "info") }}
-      <span>{% if parcel.status in ["Delivered", "Failed"] %}This delivery is finished. No more changes are needed.{% else %}No update is needed right now.{% endif %}</span>
+      <span>{% if parcel.status in ["Delivered", "Failed"] %}This delivery is finished. No more changes are needed.{% else %}No update is needed right now.{% endif %}
+        {% if photo %}<br>Proof photo saved on {{ photo.uploaded_at|myt }}.{% endif %}</span>
     </div>
   {% endif %}
 </div>

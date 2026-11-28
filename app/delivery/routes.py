@@ -6,26 +6,30 @@ Working now:
   - Rider "My Parcels" page: only parcels assigned to that rider
   - Rider parcel detail page
   - Rider status update in the correct order (Task 6)
+  - Proof-of-delivery photo, required for Delivered and Failed (Task 9)
 
 Security controls already in place:
   SR3.1  Only Admin can open the assign page and assign parcels (checked on the server)
   SR3.2  A rider can only open or update parcels assigned to them; any other ID returns 403
   SR3.3  Status changes only in order: Assigned -> Out for Delivery -> Delivered or Failed;
          any other value, skipped step or backwards step is rejected (ALLOWED_NEXT)
+  SR3.4  Delivery photos: only real JPG/PNG under 5 MB, re-saved clean, random name,
+         stored outside app/static (checks in uploads.py)
   SR3.5  Every assignment is written to status_history with who and when
   SR3.6  Forms carry a CSRF token; templates escape recipient data
   SR3.7  The dashboard shows only counts per status, no personal data
          (rider workload and recent activity show staff names, tracking numbers,
          statuses and times only, never recipient details)
 
-Next steps: secure proof-of-delivery photo upload (SR3.4, Task 9).
+Next steps: protected route to view delivery photos (Task 12).
 """
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, current_app
 from flask_login import current_user
 
 from .. import db
-from ..models import Parcel, User, StatusHistory, record_status_change, utcnow
+from ..models import Parcel, User, StatusHistory, DeliveryPhoto, record_status_change, utcnow
 from ..security import role_required
+from .uploads import save_delivery_photo, PhotoRejected
 
 delivery_bp = Blueprint("delivery", __name__)
 
@@ -37,6 +41,10 @@ ALLOWED_NEXT = {
     "Assigned": ["Out for Delivery"],
     "Out for Delivery": ["Delivered", "Failed"],
 }
+
+# SR3.4: these final steps need a proof-of-delivery photo
+PHOTO_REQUIRED = {"Delivered", "Failed"}
+PHOTO_ERROR = "Please upload a JPG or PNG photo under 5 MB."
 
 
 @delivery_bp.route("/admin/assign", methods=["GET", "POST"])
@@ -118,8 +126,13 @@ def own_parcel_or_403(parcel_id):
 @role_required("rider")
 def rider_parcel_detail(parcel_id):
     parcel = own_parcel_or_403(parcel_id)
+    next_options = ALLOWED_NEXT.get(parcel.status, [])
+    photo = (DeliveryPhoto.query.filter_by(parcel_id=parcel.id)
+             .order_by(DeliveryPhoto.id.desc()).first())
     return render_template("delivery/rider_parcel_detail.html", parcel=parcel,
-                           next_options=ALLOWED_NEXT.get(parcel.status, []))
+                           next_options=next_options,
+                           needs_photo=any(s in PHOTO_REQUIRED for s in next_options),
+                           photo=photo)
 
 
 @delivery_bp.route("/rider/parcels/<int:parcel_id>/status", methods=["POST"])
@@ -138,6 +151,21 @@ def update_status(parcel_id):
             parcel.id, parcel.status, new_status[:30], current_user.id)
         flash("That status change isn't allowed for this parcel.", "danger")
         return redirect(url_for("delivery.rider_parcel_detail", parcel_id=parcel.id))
+
+    # Task 9 (SR3.4): Delivered and Failed need a photo that passes every check.
+    # If anything fails, nothing is saved and the status stays the same.
+    if new_status in PHOTO_REQUIRED:
+        upload = request.files.get("photo")
+        try:
+            stored_filename = save_delivery_photo(upload, current_app.config["UPLOAD_FOLDER"])
+        except PhotoRejected as reason:
+            current_app.logger.warning(
+                "Rejected delivery photo: parcel %s by rider %s, file %r: %s",
+                parcel.id, current_user.id, (upload.filename if upload else "")[:60], reason)
+            flash(PHOTO_ERROR, "danger")
+            return redirect(url_for("delivery.rider_parcel_detail", parcel_id=parcel.id))
+        db.session.add(DeliveryPhoto(parcel_id=parcel.id, stored_filename=stored_filename,
+                                     uploaded_by=current_user.id))
 
     record_status_change(parcel, new_status, current_user)   # audit log: who and when (P5)
     if new_status == "Delivered":

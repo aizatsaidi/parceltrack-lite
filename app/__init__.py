@@ -114,10 +114,15 @@ def create_app():
         return render_template("error.html", code=404,
                                message="Page not found."), 404
 
+    # Upload bigger than MAX_CONTENT_LENGTH (5 MB): refused before the file is read.
+    # Logged as a security event (P5); the user sees the same hint as other bad photos.
     @app.errorhandler(413)
     def too_large(e):
+        who = current_user.id if current_user.is_authenticated else "anonymous"
+        app.logger.warning("Blocked upload over 5 MB: %s %s by user %s",
+                           request.method, request.path, who)
         return render_template("error.html", code=413,
-                               message="The file is too large."), 413
+                               message="Please upload a JPG or PNG photo under 5 MB."), 413
 
     @app.errorhandler(500)
     def server_error(e):
