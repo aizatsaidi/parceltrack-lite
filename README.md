@@ -40,6 +40,32 @@ Open **http://127.0.0.1:5000** in your browser. To stop it, press `Ctrl + C` in 
   never on the cloud server, and Flask's debug mode stays off (P4).
 - **To reset the demo data,** stop the website, delete `parceltrack.db`, and start it again.
 
+## Optional: run with MySQL
+
+By default, the app uses the local SQLite file `parceltrack.db`; no database server is needed. The
+tests explicitly use temporary SQLite databases. To use MySQL instead, install the packages from
+`requirements.txt` and create the database and a dedicated application account. Run these statements
+in MySQL as a database administrator, replacing the example password with a unique secret:
+
+```sql
+CREATE DATABASE parceltrack CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'parceltrack_app'@'127.0.0.1' IDENTIFIED BY 'replace-with-a-long-random-password';
+GRANT SELECT, INSERT, UPDATE, DELETE ON parceltrack.* TO 'parceltrack_app'@'127.0.0.1';
+```
+
+The app account only receives the data access needed at runtime. Create the tables with an admin
+account by running `mysql -u root -p parceltrack < schema.sql`. Then copy `.env.example` to `.env`,
+set a random `SECRET_KEY`, and set `DATABASE_URL` to the app account's URL, for example:
+
+```text
+DATABASE_URL=mysql+pymysql://parceltrack_app:YOUR_DB_PASSWORD@127.0.0.1:3306/parceltrack
+```
+
+Encode reserved characters in the URL username or password (for example, `@` as `%40`). Start the
+app with `python run.py`; it seeds the fake demo data on the first run, using the configured database.
+Keep `.env` private; it is excluded from Git. For a remote MySQL server, create the app user for the
+specific application host instead of granting access from every host, and use the server's TLS setup.
+
 ## Demo logins (fake test accounts only)
 
 | Role | Email | Password | Lands on |

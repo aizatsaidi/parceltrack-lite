@@ -1,6 +1,6 @@
 -- ParcelTrack Lite database schema (MySQL). Matches the ERD on slide 5.
 -- Usage: mysql -u root -p parceltrack < schema.sql
-
+USE parceltrack;
 CREATE TABLE users (
 	id INTEGER NOT NULL AUTO_INCREMENT, 
 	name VARCHAR(100) NOT NULL, 
