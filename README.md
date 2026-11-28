@@ -1,5 +1,7 @@
 # ParcelTrack Lite
 
+[![Security tests](https://github.com/aizatsaidi/parceltrack-lite/actions/workflows/tests.yml/badge.svg)](https://github.com/aizatsaidi/parceltrack-lite/actions/workflows/tests.yml)
+
 STTCK3033 Secure Software Development: group project for RapidExpress Sdn. Bhd.
 Stack: Python Flask + MySQL (SQLite for local demos).
 
@@ -94,7 +96,8 @@ python -m pytest tests -v
 ```
 
 Each test checks one security requirement from the slides (SR1.x, SR2.x, SR3.x). All tests must pass
-before you push. New tests for each module go in `tests/test_m1.py`, `tests/test_m2.py` and `tests/test_m3.py`.
+before you push. GitHub also runs them automatically on every push (the **Security tests** badge at the top
+and the ✓ or ✗ next to each commit); a red ✗ means someone's change broke a test, so fix it first. New tests for each module go in `tests/test_m1.py`, `tests/test_m2.py` and `tests/test_m3.py`.
 
 ---
 

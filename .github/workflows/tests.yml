@@ -1,0 +1,37 @@
+# Task 2: run the security tests automatically on GitHub.
+# Every push and pull request to main installs the project on a fresh computer
+# and runs `python -m pytest tests`. A failing test shows a red ✗ on the commit,
+# so a broken change is spotted the same day.
+name: Security tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Least privilege: the workflow can only read the code, never change the repo.
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Run security tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install packages
+        run: pip install -r requirements.txt pytest
+
+      - name: Run the security tests
+        run: python -m pytest tests -v
