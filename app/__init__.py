@@ -14,12 +14,15 @@ import logging
 from flask import Flask, render_template, redirect, url_for, request, session
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from dotenv import load_dotenv
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 csrf = CSRFProtect()
+limiter = Limiter(key_func=get_remote_address, default_limits=[], storage_uri="memory://")
 
 
 def create_app():
@@ -52,6 +55,7 @@ def create_app():
     )
 
     db.init_app(app)
+    limiter.init_app(app)
     csrf.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = "auth.login"
@@ -130,6 +134,11 @@ def create_app():
     def not_found(e):
         return render_template("error.html", code=404,
                                message="Page not found."), 404
+
+    @app.errorhandler(429)
+    def too_many_requests(e):
+        return render_template("error.html", code=429,
+                               message="Too many requests, please try again later."), 429
 
     # Upload bigger than MAX_CONTENT_LENGTH (5 MB): refused before the file is read.
     # Logged as a security event (P5); the user sees the same hint as other bad photos.

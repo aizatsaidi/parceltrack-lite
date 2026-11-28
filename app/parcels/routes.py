@@ -19,10 +19,10 @@ import re
 import secrets
 import string
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
 from flask_login import current_user
 
-from .. import db
+from .. import db, limiter
 from ..models import Parcel, StatusHistory
 from ..security import role_required
 
@@ -99,6 +99,16 @@ def new_parcel():
 
 
 @parcels_bp.route("/track")
+@limiter.limit(
+    "20 per minute",
+    # Keep unrelated tests from sharing a rate-limit bucket; the focused limit
+    # test opts back in with RATELIMIT_TEST_ENABLED.
+    exempt_when=lambda: current_app.testing and not current_app.config.get(
+        "RATELIMIT_TEST_ENABLED", False
+    ),
+    # Only count actual lookup submissions, not visits to the empty tracking form.
+    deduct_when=lambda response: bool(request.args.get("tracking_no", "").strip()),
+)
 def track():
     """Public page - no login. Shows ONLY status, date and time."""
     tracking_no = request.args.get("tracking_no", "").strip().upper()[:20]
