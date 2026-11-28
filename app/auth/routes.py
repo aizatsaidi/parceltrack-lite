@@ -6,7 +6,7 @@ Working now (for the progress demo):
   - Seller self-registration
 
 Security controls already in place:
-  SR1.1  Passwords stored only as salted hashes (Werkzeug)
+  SR1.1  Passwords stored only as salted Argon2id hashes
   SR1.2  Passwords must be at least 10 characters (checked on the server)
   SR1.3  Account locked for 15 minutes after 5 failed logins
   SR1.4  One generic error message: "Invalid email or password"
@@ -20,10 +20,9 @@ from datetime import timedelta
 
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
-
 from .. import db
 from ..models import User, LoginEvent, utcnow
+from .passwords import hash_password, verify_password
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -55,7 +54,7 @@ def login():
             flash(GENERIC_LOGIN_ERROR, "danger")
             return render_template("auth/login.html"), 401
 
-        if user and user.is_active_account and check_password_hash(user.password_hash, password):
+        if user and user.is_active_account and verify_password(user.password_hash, password):
             user.failed_logins = 0
             user.locked_until = None
             log_event(user, "login")
@@ -109,7 +108,7 @@ def register():
             return render_template("auth/register.html", name=name, email=email), 400
 
         user = User(name=name, email=email, role="seller",
-                    password_hash=generate_password_hash(password))
+                    password_hash=hash_password(password))
         db.session.add(user)
         db.session.commit()
         flash("Account created. You can now log in.", "success")

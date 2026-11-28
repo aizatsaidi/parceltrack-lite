@@ -1,8 +1,7 @@
 """Fake demo users and parcels (policy P4: never real recipient data)."""
-from werkzeug.security import generate_password_hash
-
 from . import db
 from .models import User, Parcel, StatusHistory
+from .auth.passwords import hash_password
 
 DEMO_USERS = [
     # name, email, role, password
@@ -39,7 +38,7 @@ def seed():
     users = {}
     for name, email, role, password in DEMO_USERS:
         u = User(name=name, email=email, role=role,
-                 password_hash=generate_password_hash(password))
+                 password_hash=hash_password(password))
         db.session.add(u)
         users[email] = u
     db.session.flush()

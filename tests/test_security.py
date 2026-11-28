@@ -42,7 +42,7 @@ def test_SR1_1_password_is_hashed(client):
     from app.models import User
     u = User.query.filter_by(email="seller@shop.test").first()
     assert "SellerDemo#2026" not in u.password_hash
-    assert u.password_hash.startswith(("scrypt:", "pbkdf2:"))
+    assert u.password_hash.startswith("$argon2id$")
 
 
 def test_SR1_2_short_password_rejected(client):
