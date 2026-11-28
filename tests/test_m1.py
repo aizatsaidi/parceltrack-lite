@@ -23,7 +23,8 @@ def auth_client():
     app.config["WTF_CSRF_ENABLED"] = False
     with app.app_context():
         seed()
-        yield app.test_client(), app
+    yield app.test_client(), app
+    with app.app_context():
         db.session.remove()
         db.engine.dispose()
 
@@ -79,7 +80,12 @@ def test_login_lockout_still_applies_with_argon2id(auth_client):
 
 
 def test_only_admin_can_view_and_submit_rider_management(auth_client):
-    client, _ = auth_client
+    client, app = auth_client
+    from app.models import User
+
+    with app.app_context():
+        rider_id = User.query.filter_by(email="ali@rapidexpress.test").first().id
+
     for email, password in [
         ("seller@shop.test", "SellerDemo#2026"),
         ("ali@rapidexpress.test", "RiderAliDemo#2026"),
@@ -91,7 +97,84 @@ def test_only_admin_can_view_and_submit_rider_management(auth_client):
             "temporary_password": "long-enough-password",
         })
         assert response.status_code == 403
+        for action in ("disable", "enable"):
+            response = client.post(f"/admin/riders/{rider_id}/status", data={"action": action})
+            assert response.status_code == 403
         client.post("/logout")
+
+
+def test_disabled_rider_cannot_log_in_and_actions_are_audited(auth_client):
+    client, app = auth_client
+    client.post("/login", data={"email": "admin@rapidexpress.test", "password": "AdminDemo#2026"})
+
+    from app import db
+    from app.models import LoginEvent, User
+
+    with app.app_context():
+        rider = User.query.filter_by(email="ali@rapidexpress.test").first()
+        rider_id = rider.id
+
+    response = client.post(f"/admin/riders/{rider_id}/status", data={"action": "disable"})
+    assert response.status_code == 302
+    with app.app_context():
+        assert not db.session.get(User, rider_id).is_active_account
+
+    blocked_client = app.test_client()
+    response = blocked_client.post("/login", data={
+        "email": "ali@rapidexpress.test", "password": "RiderAliDemo#2026",
+    })
+    assert response.status_code == 401
+    assert b"Invalid email or password" in response.data
+
+    with app.app_context():
+        rider = db.session.get(User, rider_id)
+        disabled_event = LoginEvent.query.filter_by(
+            user_id=rider_id, event="account_disabled",
+        ).order_by(LoginEvent.id.desc()).first()
+        assert not rider.is_active_account
+        assert disabled_event is not None
+        assert disabled_event.ip_address is None
+
+    response = client.post(f"/admin/riders/{rider_id}/status", data={"action": "enable"})
+    assert response.status_code == 302
+    response = blocked_client.post("/login", data={
+        "email": "ali@rapidexpress.test", "password": "RiderAliDemo#2026",
+    })
+    assert response.status_code == 302
+
+    with app.app_context():
+        rider = db.session.get(User, rider_id)
+        enabled_event = LoginEvent.query.filter_by(
+            user_id=rider_id, event="account_enabled",
+        ).order_by(LoginEvent.id.desc()).first()
+        assert rider.is_active_account
+        assert enabled_event is not None
+        assert enabled_event.ip_address is None
+
+
+def test_logged_in_rider_is_logged_out_after_account_is_disabled(auth_client):
+    admin_client, app = auth_client
+    rider_client = app.test_client()
+    rider_client.post("/login", data={
+        "email": "ali@rapidexpress.test", "password": "RiderAliDemo#2026",
+    })
+    admin_client.post("/login", data={
+        "email": "admin@rapidexpress.test", "password": "AdminDemo#2026",
+    })
+
+    from app.models import User
+
+    with app.app_context():
+        rider_id = User.query.filter_by(email="ali@rapidexpress.test").first().id
+
+    response = admin_client.post(
+        f"/admin/riders/{rider_id}/status", data={"action": "disable"},
+    )
+    assert response.status_code == 302
+
+    response = rider_client.get("/rider/parcels")
+    assert response.status_code == 302
+    assert "/login" in response.headers["Location"]
 
 
 def test_admin_creates_rider_and_form_role_is_ignored(auth_client):

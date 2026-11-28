@@ -14,11 +14,11 @@ Security controls already in place:
   SR1.6  Disabled accounts cannot log in
   SR1.7  Logins and failed logins are logged, never the password
 
-Next steps: Admin disables Rider accounts, change password page.
+Next step: Add a change password page.
 """
 from datetime import timedelta
 
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
 from flask_login import login_user, logout_user, login_required, current_user
 from .. import db
 from ..models import User, LoginEvent, utcnow
@@ -84,7 +84,7 @@ def login():
 
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
-    """Sellers register themselves. Riders are created by Admin (next step)."""
+    """Sellers register themselves. Riders are created by Admin."""
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
@@ -153,6 +153,35 @@ def admin_riders():
 
     riders = User.query.filter_by(role="rider").order_by(User.name).all()
     return render_template("auth/riders.html", riders=riders)
+
+
+@auth_bp.route("/admin/riders/<int:rider_id>/status", methods=["POST"])
+@role_required("admin")
+def set_rider_status(rider_id):
+    """Enable or disable a rider and record the change without an IP address."""
+    rider = db.session.get(User, rider_id)
+    if rider is None or rider.role != "rider":
+        abort(404)
+
+    action = request.form.get("action", "")
+    if action not in {"disable", "enable"}:
+        flash("Could not update this rider account.", "danger")
+        return redirect(url_for("auth.admin_riders"))
+
+    should_be_active = action == "enable"
+    if rider.is_active_account != should_be_active:
+        rider.is_active_account = should_be_active
+        db.session.add(LoginEvent(
+            user_id=rider.id,
+            event="account_enabled" if should_be_active else "account_disabled",
+            ip_address=None,
+        ))
+        db.session.commit()
+        flash("Rider account enabled." if should_be_active else "Rider account disabled.", "success")
+    else:
+        flash("Rider account is already enabled." if should_be_active else "Rider account is already disabled.", "info")
+
+    return redirect(url_for("auth.admin_riders"))
 
 
 @auth_bp.route("/logout", methods=["POST"])

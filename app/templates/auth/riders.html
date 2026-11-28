@@ -37,16 +37,25 @@
   </div>
   <div class="table-wrap">
     <table class="data-table">
-      <thead><tr><th>Name</th><th>Email</th><th>Account state</th></tr></thead>
+      <thead><tr><th>Name</th><th>Email</th><th>Account state</th><th>Action</th></tr></thead>
       <tbody>
       {% for rider in riders %}
         <tr>
           <td><span class="person">{{ avatar(rider.name) }}{{ rider.name }}</span></td>
           <td>{{ rider.email }}</td>
           <td>{{ "Active" if rider.is_active_account else "Disabled" }}</td>
+          <td>
+            <form method="post" action="{{ url_for('auth.set_rider_status', rider_id=rider.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="{{ 'disable' if rider.is_active_account else 'enable' }}">
+              <button class="button button-secondary button-small" aria-label="{{ 'Disable' if rider.is_active_account else 'Enable' }} {{ rider.name }}">
+                {{ "Disable" if rider.is_active_account else "Enable" }}
+              </button>
+            </form>
+          </td>
         </tr>
       {% else %}
-        <tr><td colspan="3" class="empty">
+        <tr><td colspan="4" class="empty">
           <div class="chip-icon">{{ icon("inbox") }}</div>
           <strong>No rider accounts yet.</strong>
           Create a rider account using the form above.
