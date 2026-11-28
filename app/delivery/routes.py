@@ -1,33 +1,42 @@
 """
 MODULE 3 - Delivery Update and Admin Dashboard  (owner: Aizat)
 
-Working now (for the progress demo):
+Working now:
   - Admin "Assign Parcels" page with a status summary (dashboard)
   - Rider "My Parcels" page: only parcels assigned to that rider
   - Rider parcel detail page
+  - Rider status update in the correct order (Task 6)
 
 Security controls already in place:
   SR3.1  Only Admin can open the assign page and assign parcels (checked on the server)
-  SR3.2  A rider can only open parcels assigned to them; any other ID returns 403
+  SR3.2  A rider can only open or update parcels assigned to them; any other ID returns 403
+  SR3.3  Status changes only in order: Assigned -> Out for Delivery -> Delivered or Failed;
+         any other value, skipped step or backwards step is rejected (ALLOWED_NEXT)
   SR3.5  Every assignment is written to status_history with who and when
   SR3.6  Forms carry a CSRF token; templates escape recipient data
   SR3.7  The dashboard shows only counts per status, no personal data
          (rider workload and recent activity show staff names, tracking numbers,
          statuses and times only, never recipient details)
 
-Next steps: rider status update with valid order (SR3.3) and
-secure proof-of-delivery photo upload (SR3.4).
+Next steps: secure proof-of-delivery photo upload (SR3.4, Task 9).
 """
-from flask import Blueprint, render_template, request, redirect, url_for, flash, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, current_app
 from flask_login import current_user
 
 from .. import db
-from ..models import Parcel, User, StatusHistory, record_status_change
+from ..models import Parcel, User, StatusHistory, record_status_change, utcnow
 from ..security import role_required
 
 delivery_bp = Blueprint("delivery", __name__)
 
 STATUSES = ["Registered", "Assigned", "Out for Delivery", "Delivered", "Failed"]
+
+# SR3.3: the ONLY status changes a rider may make, in order.
+# Anything not listed here (skipping a step, going backwards, a made-up status) is rejected.
+ALLOWED_NEXT = {
+    "Assigned": ["Out for Delivery"],
+    "Out for Delivery": ["Delivered", "Failed"],
+}
 
 
 @delivery_bp.route("/admin/assign", methods=["GET", "POST"])
@@ -92,11 +101,47 @@ def rider_parcels():
     return render_template("delivery/rider_parcels.html", parcels=parcels)
 
 
+def own_parcel_or_403(parcel_id):
+    """The key access-control check (SR3.2, P1): the parcel must be assigned to
+    the logged-in rider. Any other ID, including one that doesn't exist, gets 403,
+    so changing the number in the URL never reveals someone else's parcel."""
+    parcel = db.session.get(Parcel, parcel_id)
+    if parcel is None or parcel.assigned_rider_id != current_user.id:
+        # Security event for the log (P5): IDs only, no recipient details
+        current_app.logger.warning("Blocked access: rider %s tried parcel %s (%s %s)",
+                                   current_user.id, parcel_id, request.method, request.path)
+        abort(403)
+    return parcel
+
+
 @delivery_bp.route("/rider/parcels/<int:parcel_id>")
 @role_required("rider")
 def rider_parcel_detail(parcel_id):
-    parcel = db.session.get(Parcel, parcel_id)
-    # The key access-control check: changing the ID in the URL gets 403
-    if parcel is None or parcel.assigned_rider_id != current_user.id:
-        abort(403)
-    return render_template("delivery/rider_parcel_detail.html", parcel=parcel)
+    parcel = own_parcel_or_403(parcel_id)
+    return render_template("delivery/rider_parcel_detail.html", parcel=parcel,
+                           next_options=ALLOWED_NEXT.get(parcel.status, []))
+
+
+@delivery_bp.route("/rider/parcels/<int:parcel_id>/status", methods=["POST"])
+@role_required("rider")
+def update_status(parcel_id):
+    """Task 6 (SR3.3): a rider moves their own parcel one step along the route."""
+    parcel = own_parcel_or_403(parcel_id)                 # 403 if not this rider's parcel
+    new_status = request.form.get("new_status", "").strip()
+
+    # Never trust the form: only the next steps listed in ALLOWED_NEXT are accepted.
+    # A made-up value, an empty value, skipping a step or going backwards is rejected.
+    if new_status not in ALLOWED_NEXT.get(parcel.status, []):
+        # Technical detail goes to the log only (P4); no recipient details in it (P5)
+        current_app.logger.warning(
+            "Rejected status change: parcel %s from %r to %r by rider %s",
+            parcel.id, parcel.status, new_status[:30], current_user.id)
+        flash("That status change isn't allowed for this parcel.", "danger")
+        return redirect(url_for("delivery.rider_parcel_detail", parcel_id=parcel.id))
+
+    record_status_change(parcel, new_status, current_user)   # audit log: who and when (P5)
+    if new_status == "Delivered":
+        parcel.delivered_at = utcnow()                        # used later for the P3 clean-up
+    db.session.commit()
+    flash(f"{parcel.tracking_no} is now {new_status}.", "success")
+    return redirect(url_for("delivery.rider_parcel_detail", parcel_id=parcel.id))

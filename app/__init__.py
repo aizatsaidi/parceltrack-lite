@@ -11,10 +11,10 @@ the security features every module relies on:
 import os
 import logging
 
-from flask import Flask, render_template, redirect, url_for
+from flask import Flask, render_template, redirect, url_for, request
 from flask_login import LoginManager, current_user
 from flask_sqlalchemy import SQLAlchemy
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from dotenv import load_dotenv
 
 db = SQLAlchemy()
@@ -97,6 +97,17 @@ def create_app():
     def forbidden(e):
         return render_template("error.html", code=403,
                                message="You do not have permission to view this page."), 403
+
+    # A form sent without a valid CSRF token (for example a fake form on another
+    # website). Blocked by Flask-WTF; here we log who and where (P5) and show the
+    # normal styled error page instead of the plain default one (P4).
+    @app.errorhandler(CSRFError)
+    def csrf_failed(e):
+        who = current_user.id if current_user.is_authenticated else "anonymous"
+        app.logger.warning("Blocked form without a valid CSRF token: %s %s by user %s",
+                           request.method, request.path, who)
+        return render_template("error.html", code=400,
+                               message="This form has expired. Reload the page and try again."), 400
 
     @app.errorhandler(404)
     def not_found(e):

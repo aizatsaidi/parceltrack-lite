@@ -28,5 +28,31 @@
   {{ route(events) }}
 </div>
 
-<div class="notice notice-info mt-3">{{ icon("info") }}<span>Updating the status and uploading the delivery photo come next (Task 6 and Task 9).</span></div>
+{# Task 6: only the next allowed steps are offered. The server checks them again (SR3.3). #}
+<div class="card card-pad">
+  <h2 class="card-title">{{ icon("truck") }} Update status</h2>
+  {% if next_options %}
+    <p class="muted">Now: {{ parcel.status }}. Tap the next step when it happens.</p>
+    {% set BUTTONS = {
+        "Out for Delivery": ("truck", "button", "I've picked it up: Out for Delivery"),
+        "Delivered": ("check", "button", "Delivered to the recipient"),
+        "Failed": ("x", "button button-secondary", "Delivery failed"),
+    } %}
+    <div class="d-grid gap-2">
+      {% for option in next_options %}
+        {% set ic, cls, label = BUTTONS.get(option, ("check", "button", option)) %}
+        <form method="post" action="{{ url_for('delivery.update_status', parcel_id=parcel.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="new_status" value="{{ option }}">
+          <button class="{{ cls }} button-lg button-block">{{ icon(ic) }} {{ label }}</button>
+        </form>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="notice notice-{{ 'success' if parcel.status == 'Delivered' else 'info' }} mb-0">
+      {{ icon("check-circle" if parcel.status == "Delivered" else "info") }}
+      <span>{% if parcel.status in ["Delivered", "Failed"] %}This delivery is finished. No more changes are needed.{% else %}No update is needed right now.{% endif %}</span>
+    </div>
+  {% endif %}
+</div>
 {% endblock %}
