@@ -618,3 +618,86 @@ def test_unknown_status_filter_is_ignored_safely(client):
     _, app = client
     r = get_as(app, ADMIN, "/admin/parcels?status=' OR '1'='1")
     assert r.status_code == 302 and r.headers["Location"].endswith("/admin/parcels")
+
+
+# ---------- Task 19: remaining Module 3 checks ----------
+
+@pytest.mark.parametrize("who", [SELLER, ALI], ids=["seller", "rider"])
+def test_SR3_1_only_admin_opens_or_submits_assign(client, who):
+    _, app = client
+    c = as_user(app, who)
+    assert c.get("/admin/assign").status_code == 403
+    p = parcel("RX-DEMO7KQ2M9")                                       # Registered
+    assert c.post("/admin/assign", data={"parcel_id": p.id, "rider_id": 3}).status_code == 403
+    assert parcel("RX-DEMO7KQ2M9").status == "Registered"
+
+
+def test_SR3_1_assign_page_needs_login(client):
+    _, app = client
+    r = get_as(app, None, "/admin/assign")
+    assert r.status_code == 302 and "/login" in r.headers["Location"]
+
+
+def assign_as_admin(app, parcel_id, rider_id):
+    c = as_user(app, ADMIN)
+    return c.post("/admin/assign", data={"parcel_id": parcel_id, "rider_id": rider_id},
+                  follow_redirects=True)
+
+
+@pytest.mark.parametrize("rider_value", ["abc", "", "1 OR 1=1", "-1", "99999"])
+def test_SR3_1_tampered_rider_id_rejected(client, rider_value):
+    """Request tampering: the rider ID in the assign form is changed by hand."""
+    _, app = client
+    p = parcel("RX-DEMO7KQ2M9")
+    r = assign_as_admin(app, p.id, rider_value)
+    assert r.status_code == 200
+    assert parcel("RX-DEMO7KQ2M9").status == "Registered"
+    assert parcel("RX-DEMO7KQ2M9").assigned_rider_id is None
+
+
+def test_SR3_1_cannot_assign_to_a_seller_or_admin(client):
+    _, app = client
+    from app.models import User
+    p = parcel("RX-DEMO7KQ2M9")
+    for email in ("seller@shop.test", "admin@rapidexpress.test"):
+        not_rider = User.query.filter_by(email=email).first()
+        assign_as_admin(app, p.id, not_rider.id)
+        assert parcel("RX-DEMO7KQ2M9").assigned_rider_id is None
+
+
+def test_SR3_1_cannot_assign_to_a_disabled_rider(client):
+    _, app = client
+    from app import db
+    from app.models import User
+    siti = User.query.filter_by(email=SITI[0]).first()
+    siti.is_active_account = False
+    db.session.commit()
+    assign_as_admin(app, parcel("RX-DEMO7KQ2M9").id, siti.id)
+    assert parcel("RX-DEMO7KQ2M9").assigned_rider_id is None
+
+
+def test_SR3_1_cannot_reassign_a_parcel_already_on_its_way(client):
+    """Tampering: posting the ID of Ali's Out for Delivery parcel to give it to Siti."""
+    _, app = client
+    from app.models import User
+    siti = User.query.filter_by(email=SITI[0]).first()
+    assign_as_admin(app, parcel(OUT).id, siti.id)
+    p = parcel(OUT)
+    assert p.status == "Out for Delivery" and p.rider.email == ALI[0]
+
+
+def test_SR3_6_script_in_recipient_name_is_escaped_on_module3_pages(client):
+    """Stored XSS: a seller types a script as the recipient name; rider and Admin pages
+    must show it as text, never run it."""
+    _, app = client
+    from app import db
+    p = parcel("RX-DEMO9HN3QX")                                       # Ali's Assigned parcel
+    p.recipient_name = "<script>alert('xss')</script>"
+    p.recipient_address = "<img src=x onerror=alert(1)>"
+    db.session.commit()
+    for who, url in ((ALI, "/rider/parcels"), (ALI, f"/rider/parcels/{p.id}"),
+                     (ADMIN, f"/admin/parcels/{p.id}")):
+        page = get_as(app, who, url).data
+        assert b"<script>alert('xss')</script>" not in page
+        assert b"<img src=x onerror" not in page
+        assert b"&lt;script&gt;" in page or b"&lt;img" in page
